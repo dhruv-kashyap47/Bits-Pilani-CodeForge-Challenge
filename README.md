@@ -1,62 +1,53 @@
-# Vanguard Grading Engine — BITS Digital CodeForge
+# Vanguard Grading Engine
 
-A single-file, fully client-side grading console for trimester-end results. Upload a marks sheet, validate it, pick a course, confirm the grade bands, review, and export a CSV. No backend, no database, no build step, no account. 
+A single file, fully client side grading console for trimester results. Upload a marks sheet, validate it, pick a course, confirm the grade bands, review, and export a CSV.
 
-Now completely overhauled with **elite, Awwwards-level UX/UI** using Tailwind CSS, GSAP (ScrollTrigger), and modern glassmorphism design principles.
-
-Open `index.html` (or `BITS_Digital_CodeForge_Challenge.html`) in a browser and it runs instantly.
-
----
+No backend, no database, no build step, no account, no uploads. Data never leaves the browser.
 
 ## Quick start
 
-1. Open `index.html` in any modern browser.
-2. Drag `dummy_valid_marks.xlsx` into the file input to see a clean run, or `dummy_edge_cases.xlsx` to see validation error handling.
-3. Select your desired course from the dropdown.
-4. The dashboard will animate in (powered by GSAP), displaying a dense analytics grid, a fully reactive histogram, and configurable grade thresholds.
-5. Export your final grades securely. Data never leaves your machine.
+1. Open `index.html` (or `BITS_Digital_CodeForge_Challenge.html`) in any modern browser.
+2. Drag in a marks file: `dummy_valid_marks.xlsx` for a clean run, `dummy_edge_cases.xlsx` to see validation handling.
+3. Pick a course, adjust the grade bands if you want, then Finalize and Export.
 
----
+## What it does
 
-## Test Data Included
+- **Import.** Reads `.xlsx`, `.xlsm`, `.xls`, `.xlsb` and `.csv`. Finds the header row itself and matches columns by name.
+- **Validate.** Checks every row. Bad rows are excluded from grading but kept in a downloadable issues log.
+- **Grade.** Eight bands, `A` to `E`, that cascade automatically when you edit a boundary.
+- **Analyze.** Live histogram, standard deviation, pass rate, grade spread and a student search.
+- **Export.** An RFC 4180 CSV with a UTF-8 BOM, plus a review dialog before anything is written to disk.
 
-### `dummy_valid_marks.xlsx`
-20 clean student records spanning the `Computer Networks` course. Randomly generated integer marks designed to fall perfectly into standard grading distributions.
+## Grade bands
 
-### `dummy_edge_cases.xlsx`
-9 highly specific records testing validation boundaries:
-- Negative marks (`-5`)
-- Over-maximum marks (`105`)
-- Missing courses
-- Strings formatted as marks (`Eighty`)
-- Percentages disguised as floats (`45.6`, `82%`)
+| Grade | Default band |
+|-------|--------------|
+| A | 80 to 100 |
+| A- | 60 to 79 |
+| B+ | 55 to 59 |
+| B | 50 to 54 |
+| B- | 45 to 49 |
+| C | 40 to 44 |
+| C- | 35 to 39 |
+| E | 0 to 34 |
 
----
+Pass mark is 40. Only a band's minimum is editable; its maximum is derived, so the bands always tile 0 to 100 without gaps or overlaps. Export stays blocked while any student falls outside the bands.
 
-## What the app does
+## Test data
 
-**Validate.** Every row is checked before it is graded. Any row violating the BITS schema is excluded from the grading process but retained for a downloadable error log.
-**Grade.** Eight dynamic, cascading bands (`A` through `E`). 
-**Analyze.** Real-time standard deviation, pass rates, min/max metrics, and an interactive canvas histogram charting the bell curve of the cohort.
-**Search.** Find any student ID in the cohort instantly.
-**Export.** Clean, RFC 4180 compliant CSV exports formatted perfectly for university administration software.
+- `dummy_valid_marks.xlsx`: a clean cohort with no validation issues.
+- `dummy_edge_cases.xlsx`: duplicate BITS IDs, out of range and non numeric marks, missing fields, percentage cells, and a course where every row is invalid.
 
----
+## Tests
 
-## Design Aesthetics (Tasteskill v2)
-The UI breaks from boring "stock AI" formats:
-- **Cinematic Hero:** Max-width typographic limits enforcing 2-line maximums.
-- **Glassmorphic Bento Grid:** Interlocking analytical panels styled with translucent backgrounds and subtle border glow effects.
-- **GSAP ScrollTrigger:** Fluid scroll animations, staggered reveals, and responsive hover physics.
-- **Dark Mode Native:** Deep blacks, violet accents, and high-contrast typography using the `Outfit` font family.
+```
+cd tests
+npm install
+npm run verify     # node test.js && node browser-qa.js
+```
 
----
+`test.js` runs 36 assertion groups in jsdom. `browser-qa.js` drives the real page in headless Edge and checks the canvas, layout at five widths, touch targets, keyboard access and console hygiene. See `BUG_FIX_LOG.md` for every defect these guard against.
 
 ## Deploying
-Because this is a completely static, single HTML file, you can host it anywhere instantly.
 
-**GitHub Pages / Vercel / Netlify:**
-Drop the HTML file in your repository. It deploys instantly. No `npm run build` required.
-
-**Locally:**
-Simply double click the file. It operates safely within the `file://` protocol.
+The app is static. Drop `index.html` on GitHub Pages, Vercel, Netlify or any file host. Tailwind, GSAP and SheetJS load from CDNs, with a second CDN as fallback for SheetJS, so the page needs internet access on first load.
