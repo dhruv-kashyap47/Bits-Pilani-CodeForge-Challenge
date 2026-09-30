@@ -180,7 +180,7 @@
           </div>
           
           <div id="grades" class="grid grid-cols-2 gap-4 overflow-y-auto max-h-[500px] pr-2"></div>
-          <div id="rangeError" class="text-red-400 text-sm p-4 rounded-xl bg-red-900/20 border border-red-900/50 hidden"></div>
+          <div id="rangeError" class="text-red-400 text-sm p-4 rounded-xl bg-red-900/20 border border-red-900/50" hidden></div>
           
           <div class="mt-auto pt-6 border-t border-white/10 flex flex-col gap-4">
             <div class="flex justify-between items-center">
@@ -1018,6 +1018,14 @@ function renderDataQuality() {
     el.qualityDetails.open = false;
     el.qualityDetails.hidden = true;
     el.qualityActions.hidden = true;
+    /* The panel is hidden, but its contents belong to the file that was just
+       discarded. Clear them too, so a failed re-upload cannot leave the
+       previous cohort's row numbers and issue counts in the DOM. */
+    el.qualityBody.textContent = "";
+    el.qualitySummary.textContent = "";
+    el.qualityCaption.textContent = "";
+    el.qualityTruncated.textContent = "";
+    el.qualityIssuesNote.textContent = "";
     return;
   }
 
@@ -1295,10 +1303,8 @@ function buildGradeUI() {
     maxSel.id = g + "max";
 
     minSel.onchange = function () {
-      lift();
       // Enforce rules strictly
       var newMin = Number(minSel.value);
-      var idx = GRADES.indexOf(g);
       state.ranges[g].min = newMin;
       
       // Cascade down
@@ -1372,8 +1378,12 @@ function cascadeMaxFrom(index) {
 
 /* Guarantees a complete, gap-free, overlap-free partition of 0-100:
    every band valid, A.max = 100, E.min = 0, and each band ends exactly
-   one mark above the next band's start. Returns every problem found. */
-function validateRanges() { return []; 
+   one mark above the next band's start. Returns every problem found.
+
+   A single-mark band (min === max) is legitimate: the cascade collapses
+   intermediate bands to one mark when a boundary is moved past them, and
+   such a band still tiles the scale exactly. Only min > max is a fault. */
+function validateRanges() {
   var errors = [];
   if (!state.ranges) return errors;
 
@@ -1384,8 +1394,8 @@ function validateRanges() { return [];
       errors.push("Grade " + g + " must stay within " + MIN_MARK + "-" + MAX_MARK + ".");
       continue;
     }
-    if (band.min >= band.max) {
-      errors.push("Grade " + g + ": Min (" + band.min + ") must be lower than Max (" + band.max + ").");
+    if (band.min > band.max) {
+      errors.push("Grade " + g + ": Min (" + band.min + ") must not be above Max (" + band.max + ").");
       continue;
     }
     if (i === 0 && band.max !== MAX_MARK) {
@@ -1747,6 +1757,7 @@ function updateAll() {
   renderFinalizeState();
   renderSteps();
   drawHistogram(rows);
+  refreshTriggers();   /* the layout above these panels just changed height */
 }
 
 /* Progress rail. Each step reports the truth about the session, so the reader
@@ -1911,18 +1922,6 @@ function onCourseChange() {
   setInstructor(el.instructor.value.trim());
   if (courseRows().length && !timerInterval) startTimer();
   updateAll();
-
-  // GSAP Animations
-  if(typeof gsap !== 'undefined') {
-      gsap.registerPlugin(ScrollTrigger);
-      gsap.from(".gsap-fade-up", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
-      gsap.utils.toArray(".gsap-stagger").forEach(function(el) {
-        gsap.from(el, {
-          scrollTrigger: { trigger: el, start: "top 85%" },
-          y: 30, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.1
-        });
-      });
-  }
 }
 
 
@@ -1970,18 +1969,47 @@ function finalize() {
       " sec to complete the grading in your " + ordinalAttempt(state.finalizeCount) + " attempt.";
   }
   updateAll();
+}
 
-  // GSAP Animations
-  if(typeof gsap !== 'undefined') {
-      gsap.registerPlugin(ScrollTrigger);
-      gsap.from(".gsap-fade-up", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
-      gsap.utils.toArray(".gsap-stagger").forEach(function(el) {
-        gsap.from(el, {
-          scrollTrigger: { trigger: el, start: "top 85%" },
-          y: 30, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.1
-        });
-      });
-  }
+/* ---------- 11c  INTRO MOTION (runs once, on boot) ---------- */
+/* This block used to be duplicated in three render paths - init, onCourseChange
+   and finalize - and therefore re-ran on every course change and every export.
+   `gsap.from` writes opacity:0 synchronously, so a re-run stranded every
+   `.gsap-stagger` panel - which is where the Student Query and Data Integrity
+   modules live - at opacity 0, driven by a ScrollTrigger whose cached position
+   no longer matched the shifted layout. The modules then never faded back in,
+   even when scrolled straight into view.
+
+   Three guards close that hole permanently:
+     - it runs exactly once (introPlayed), so no render can re-hide content;
+     - `once: true` kills each trigger after it has played, so a panel that has
+       appeared can never be hidden again;
+     - ScrollTrigger.refresh() re-syncs cached positions to the settled layout,
+       and refreshTriggers() repeats that after an upload or a course switch
+       changes the height of everything above these panels.
+   Reduced-motion users skip the animation entirely and simply see the content. */
+var introPlayed = false;
+function playIntroMotion() {
+  if (introPlayed || typeof gsap === "undefined" || typeof ScrollTrigger === "undefined") return;
+  introPlayed = true;
+  gsap.registerPlugin(ScrollTrigger);
+  if (prefersReducedMotion()) return;
+  gsap.from(".gsap-fade-up", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
+  gsap.utils.toArray(".gsap-stagger").forEach(function (node) {
+    gsap.from(node, {
+      scrollTrigger: { trigger: node, start: "top 85%", once: true },
+      y: 30, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.1
+    });
+  });
+  ScrollTrigger.refresh();
+}
+
+/* Re-measures trigger positions after a render that can change the height of
+   the sections above. Refresh only recalculates start/end for triggers that
+   have not played yet; it never re-hides a panel already on screen. */
+function refreshTriggers() {
+  if (typeof ScrollTrigger === "undefined" || !introPlayed) return;
+  try { ScrollTrigger.refresh(); } catch (e) { /* motion must never break grading */ }
 }
 
 
@@ -2022,6 +2050,10 @@ function bindEvents() {
   el.searchForm.addEventListener("submit", function (e) { e.preventDefault(); renderSearch(); });
   el.searchClear.addEventListener("click", function () { el.search.value = ""; renderSearch(); el.search.focus(); });
 
+  /* Expanding the row-level table changes the height of the section these two
+     panels sit in, so the cached ScrollTrigger positions go stale. */
+  el.qualityDetails.addEventListener("toggle", refreshTriggers);
+
   var resizeTimer = null;
   window.addEventListener("resize", function () {
     clearTimeout(resizeTimer);
@@ -2038,17 +2070,7 @@ function init() {
   bindEvents();
   updateAll();
 
-  // GSAP Animations
-  if(typeof gsap !== 'undefined') {
-      gsap.registerPlugin(ScrollTrigger);
-      gsap.from(".gsap-fade-up", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
-      gsap.utils.toArray(".gsap-stagger").forEach(function(el) {
-        gsap.from(el, {
-          scrollTrigger: { trigger: el, start: "top 85%" },
-          y: 30, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.1
-        });
-      });
-  }
+  playIntroMotion();
 }
 
 
