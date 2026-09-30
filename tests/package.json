@@ -1,0 +1,19 @@
+{
+  "name": "codeforge-tests",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node test.js",
+    "browser": "node browser-qa.js",
+    "dummies": "node make-dummies.js",
+    "shots": "node shots.js",
+    "verify": "node test.js && node browser-qa.js"
+  },
+  "dependencies": {
+    "jsdom": "^29.1.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "ws": "^8.18.0"
+  }
+}

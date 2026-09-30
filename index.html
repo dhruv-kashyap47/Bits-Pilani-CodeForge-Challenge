@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BITS Pilani - Vanguard Grading Console</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<style>
+  body { font-family: 'Outfit', sans-serif; background-color: #030303; color: #f5f5f5; overflow-x: hidden; }
+  .glass-panel { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+  .text-glow { text-shadow: 0 0 40px rgba(167, 139, 250, 0.4); }
+  .bento-grid { display: grid; grid-auto-flow: dense; gap: 1rem; }
+  
+  input, select { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px 16px; border-radius: 12px; outline: none; transition: border 0.3s; width: 100%; }
+  input:focus, select:focus { border-color: #a855f7; }
+  input:disabled, select:disabled { opacity: 0.5; cursor: not-allowed; }
+  select option { background: #1a1a1a; color: #fff; }
+  
+  .btn-primary { background: linear-gradient(135deg, #a855f7, #6366f1); color: white; padding: 12px 24px; border-radius: 12px; font-weight: 600; transition: transform 0.3s, box-shadow 0.3s; border: none; cursor: pointer; }
+  .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(168, 85, 247, 0.4); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(1); }
+  
+  .btn-secondary { background: rgba(255,255,255,0.1); color: white; padding: 12px 24px; border-radius: 12px; font-weight: 500; transition: background 0.3s; border: none; cursor: pointer; }
+  .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.15); }
+  
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #000; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+  .stat-card { padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); text-align: center; }
+  .stat-card b { display: block; font-size: 2rem; font-weight: 700; color: #a855f7; margin-top: 8px; }
+  
+  .spread-track { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: #222; margin-top: 8px; }
+  .spread-track .seg { height: 100%; transition: width 0.5s ease-out; }
+  .tone-0{background:#3b82f6;} .tone-1{background:#6366f1;} .tone-2{background:#8b5cf6;} .tone-3{background:#a855f7;} .tone-4{background:#d946ef;} .tone-5{background:#ec4899;} .tone-6{background:#f43f5e;} .tone-7{background:#f97316;} .tone-x{background:#4b5563;}
+
+  .meter-track { height: 12px; border-radius: 6px; background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 8px; }
+  .meter-track i { display: block; height: 100%; background: #10b981; border-radius: 6px; transition: width 0.5s ease-out; }
+
+  table { width: 100%; text-align: left; border-collapse: collapse; }
+  th, td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  th { font-weight: 600; color: #9ca3af; }
+  tr:hover { background: rgba(255,255,255,0.02); }
+
+  dialog { background: #111; color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 32px; width: 90%; max-width: 800px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+  dialog::backdrop { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+
+  .grade-summary span { display: inline-flex; flex-direction: column; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; align-items: center; justify-content: center; min-width: 80px; }
+  .grade-summary .g-name { font-size: 1.5rem; font-weight: 700; color: #a855f7; }
+  
+  .grade { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 16px; }
+  .grade strong { font-size: 1.5rem; color: #fff; }
+  .grade .min, .grade .max { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 0.875rem; color: #9ca3af; }
+  .grade select { padding: 4px 8px; font-size: 0.875rem; width: auto; border-radius: 8px; }
+  .grade input { padding: 4px 8px; font-size: 0.875rem; width: auto; border-radius: 8px; }
+  
+  [hidden] { display: none !important; }
+</style>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Outfit', 'sans-serif'] },
+        colors: { brand: '#a855f7', 'brand-dark': '#4c1d95' }
+      }
+    }
+  }
+</script>
+</head>
+
+<body>
+<main class="overflow-x-hidden w-full max-w-full">
+  <!-- Navigation -->
+  <nav class="fixed top-0 w-full z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto glass-panel px-6 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded-full bg-brand animate-pulse"></div>
+        <span class="font-bold text-lg tracking-wide">VANGUARD <span class="text-gray-400 font-medium">Grading Engine</span></span>
+      </div>
+      <div class="text-sm text-gray-400">BITS Pilani &middot; Secure Local Processing</div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="pt-48 pb-32 px-6 relative">
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-dark/20 via-black/0 to-black/0 pointer-events-none"></div>
+    <div class="max-w-6xl mx-auto text-center relative z-10">
+      <h1 class="text-[clamp(3rem,6vw,5.5rem)] font-bold leading-tight mb-6 text-glow">
+        Algorithmic Grade<br>Intelligence.
+      </h1>
+      <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-12">
+        Process marks, analyze distributions, and export final grades entirely within your browser. Zero server uploads.
+      </p>
+      
+      <form id="setupForm" class="glass-panel p-8 max-w-4xl mx-auto text-left grid md:grid-cols-3 gap-6 relative gsap-fade-up" novalidate>
+        <div class="field flex flex-col gap-2">
+          <label for="instructor" class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Instructor <span class="text-red-400">*</span></label>
+          <input id="instructor" name="instructor" type="text" autocomplete="name" required placeholder="Prof. Name">
+          <p id="instructorError" class="text-red-400 text-xs h-4"></p>
+        </div>
+        <div class="field flex flex-col gap-2">
+          <label for="file" class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Data Source</label>
+          <input id="file" name="file" type="file" accept=".xlsx,.xls,.csv">
+          <p id="fileHint" class="text-gray-500 text-xs">.xlsx, .csv with BITS ID, Course, Marks</p>
+        </div>
+        <div class="field flex flex-col gap-2">
+          <label for="course" class="text-sm font-semibold text-gray-300 uppercase tracking-wider">Course</label>
+          <select id="course" name="course"></select>
+          <p id="courseHint" class="text-gray-500 text-xs">Select course to grade</p>
+        </div>
+      </form>
+
+      <div id="fileBanner" class="mt-6 max-w-4xl mx-auto p-4 rounded-xl text-left hidden border border-red-500/50 bg-red-500/10 text-red-400">
+        <strong id="fileBannerTitle" class="block mb-1"></strong>
+        <span id="fileBannerText" class="text-sm"></span>
+      </div>
+      <div id="welcome" class="mt-4 text-brand font-medium h-6"></div>
+    </div>
+  </section>
+
+  <!-- Analytics & Grading Bento -->
+  <section class="py-24 px-6 bg-black relative z-10">
+    <div class="max-w-7xl mx-auto">
+      <div class="bento-grid grid-cols-1 lg:grid-cols-12">
+        
+        <!-- Chart & Stats (Span 8) -->
+        <div class="glass-panel p-8 lg:col-span-8 flex flex-col gap-8 gsap-stagger">
+          <div>
+            <h2 class="text-2xl font-bold mb-2">Distribution Intelligence</h2>
+            <p id="analyticsSub" class="text-gray-400 text-sm">Upload data to visualize cohort performance.</p>
+          </div>
+          
+          <div class="w-full h-[300px] relative rounded-xl border border-white/5 bg-white/[0.01] p-4">
+             <canvas id="hist" class="w-full h-full"></canvas>
+          </div>
+
+          <div id="stats" class="grid grid-cols-4 md:grid-cols-8 gap-4">
+            <div class="stat-card"><span class="text-xs text-gray-400">Min</span><b id="min">-</b></div>
+            <div class="stat-card"><span class="text-xs text-gray-400">Max</span><b id="max">-</b></div>
+            <div class="stat-card"><span class="text-xs text-gray-400">Avg</span><b id="avg">-</b></div>
+            <div class="stat-card"><span class="text-xs text-gray-400">Med</span><b id="med">-</b></div>
+            <div class="stat-card"><span class="text-xs text-gray-400">Num</span><b id="n">-</b></div>
+            <div class="stat-card"><span class="text-xs text-gray-400">Std</span><b id="sd">-</b></div>
+            <div class="stat-card"><span class="text-xs text-gray-400">Pass</span><b id="passed">-</b></div>
+            <div class="stat-card"><span class="text-xs text-gray-400">Fail</span><b id="failed" class="text-red-400">-</b></div>
+          </div>
+
+          <div id="spread" class="mt-4" hidden>
+            <div class="flex justify-between text-sm text-gray-400 mb-2">
+              <span class="font-semibold text-gray-200">Cohort Grade Spread</span>
+              <span id="spreadNote"></span>
+            </div>
+            <div id="spreadTrack" class="spread-track"></div>
+            <div id="spreadLegend" class="flex flex-wrap gap-4 mt-3 text-xs text-gray-400"></div>
+          </div>
+          
+          <div class="mt-2">
+             <div class="flex justify-between text-sm text-gray-400 mb-2">
+               <span class="font-semibold text-gray-200">Pass Rate (&ge; 40)</span>
+               <span id="passRate" class="font-bold text-green-400">-</span>
+             </div>
+             <div class="meter-track"><i id="passBar" style="width:0%"></i></div>
+             <p id="passNote" class="text-xs text-gray-500 mt-2">No students selected.</p>
+          </div>
+          
+          <h3 id="distTitle" class="text-xl font-bold mt-4">Grade Distribution</h3>
+          <div class="grade-summary flex flex-wrap gap-2" id="gradeSummary" role="list"></div>
+        </div>
+
+        <!-- Grading Config (Span 4) -->
+        <div class="glass-panel p-8 lg:col-span-4 flex flex-col gap-6 gsap-stagger">
+          <div>
+            <h2 class="text-2xl font-bold mb-2">Grade Thresholds</h2>
+            <p class="text-gray-400 text-sm">Bands tile automatically. Adjust minimums.</p>
+          </div>
+          
+          <div id="grades" class="grid grid-cols-2 gap-4 overflow-y-auto max-h-[500px] pr-2"></div>
+          <div id="rangeError" class="text-red-400 text-sm p-4 rounded-xl bg-red-900/20 border border-red-900/50 hidden"></div>
+          
+          <div class="mt-auto pt-6 border-t border-white/10 flex flex-col gap-4">
+            <div class="flex justify-between items-center">
+               <span class="text-sm text-gray-400">Timer</span>
+               <div class="font-mono font-bold text-brand text-xl" id="timerText">00:00</div>
+               <div hidden id="timerArc"></div>
+            </div>
+            <button type="button" class="btn-secondary w-full" id="resetRanges">Reset Ranges</button>
+            <button type="button" class="btn-primary w-full" id="download" aria-disabled="true">Finalize &amp; Export</button>
+            <div id="finalizeHint" class="text-xs text-gray-400 text-center"></div>
+            <div id="thankyou" class="text-xs text-green-400 text-center h-4"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Quality & Search Section -->
+  <section class="py-32 px-6">
+    <div class="max-w-7xl mx-auto grid md:grid-cols-2 gap-8">
+      
+      <!-- Search -->
+      <div class="glass-panel p-8 flex flex-col gap-6 gsap-stagger" id="searchPanel">
+        <div>
+          <h2 class="text-2xl font-bold mb-2">Student Query</h2>
+          <p id="searchStatus" class="text-gray-400 text-sm">Select a course to search students.</p>
+        </div>
+        <form id="searchForm" class="flex gap-4" novalidate>
+          <input id="search" type="search" placeholder="Enter BITS ID (e.g. 2024...)" disabled>
+          <button type="submit" class="btn-secondary" id="searchClear" disabled>Clear</button>
+        </form>
+        <ul id="searchResults" class="space-y-3 mt-4 overflow-y-auto max-h-[300px]"></ul>
+      </div>
+
+      <!-- Data Quality -->
+      <div class="glass-panel p-8 flex flex-col gap-6 gsap-stagger" id="qualityPanel">
+        <div>
+          <h2 class="text-2xl font-bold mb-2">Data Integrity</h2>
+          <p id="qualitySub" class="text-gray-400 text-sm">No marks file loaded yet.</p>
+        </div>
+        <div id="qualityChips" class="flex flex-wrap gap-2"></div>
+        <p id="qualityLegend" class="text-sm text-gray-400"></p>
+        
+        <div id="qualityActions" class="mt-4" hidden>
+          <button type="button" class="btn-secondary w-full mb-2" id="downloadIssues">Download Issues Log (CSV)</button>
+          <p id="qualityIssuesNote" class="text-xs text-gray-500"></p>
+        </div>
+        
+        <details id="qualityDetails" class="mt-4 group">
+          <summary id="qualitySummary" class="cursor-pointer text-brand font-semibold outline-none group-open:mb-4">Row-level details</summary>
+          <div class="overflow-x-auto border border-white/10 rounded-xl max-h-[300px]">
+            <table id="qualityTable" class="w-full text-sm">
+              <caption id="qualityCaption" class="hidden"></caption>
+              <thead class="bg-white/5 sticky top-0">
+                <tr><th>Row</th><th>BITS ID</th><th>Course</th><th>Field</th><th>Value</th><th>Issue</th></tr>
+              </thead>
+              <tbody id="qualityBody"></tbody>
+            </table>
+          </div>
+          <p id="qualityTruncated" class="text-xs text-gray-500 mt-2"></p>
+        </details>
+      </div>
+      
+    </div>
+  </section>
+
+  <footer class="py-12 text-center text-gray-600 border-t border-white/5">
+    <div class="flex justify-center gap-4 mb-4" id="steps">
+      <span data-step="import" class="px-4 py-1 rounded-full border border-gray-800">Import</span>
+      <span data-step="validate" class="px-4 py-1 rounded-full border border-gray-800">Validate</span>
+      <span data-step="grade" class="px-4 py-1 rounded-full border border-gray-800">Grade</span>
+      <span data-step="export" class="px-4 py-1 rounded-full border border-gray-800">Export</span>
+    </div>
+    <p>Vanguard Grading Engine &middot; BITS Pilani</p>
+  </footer>
+</main>
+
+<dialog id="review">
+  <div class="flex justify-between items-center mb-6 pb-6 border-b border-white/10">
+    <div>
+      <h3 id="reviewTitle" class="text-2xl font-bold">Final review</h3>
+      <p id="reviewCourse" class="text-gray-400 mt-1">Confirm the grade sheet before exporting.</p>
+    </div>
+    <button type="button" id="reviewClose" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+  </div>
+  <div id="reviewBody" class="max-h-[60vh] overflow-y-auto pr-4 mb-6 text-sm"></div>
+  <div class="flex justify-between items-center pt-6 border-t border-white/10">
+    <p class="text-xs text-gray-400">Downloading finalizes grading and stops the timer.</p>
+    <div class="flex gap-4">
+      <button type="button" class="btn-secondary" id="reviewCancel">Back to grading</button>
+      <button type="button" class="btn-primary" id="reviewConfirm">Download CSV</button>
+    </div>
+  </div>
+</dialog>
+
+
+<script>
+/* =====================================================================
+   BITS Digital CodeForge - Grading Console
+   Plain ES2019+, no build step, no framework. Runs from file://
+   ---------------------------------------------------------------------
+   STRUCTURE
+     1  Config            (grade scheme - locked)
+     2  DOM cache
+     3  Utilities         (small, reusable, no side effects)
+     4  State
+     5  Parse             (workbook -> rows / problems / courses)
+     6  Derive            (course rows, distribution, statistics)
+     7  Render            (course options, analytics, quality, search, review)
+     8  Grade bands       (UI, cascade, coverage validation)
+     9  Histogram         (responsive canvas + guarded bell curve)
+    10  Export            (RFC4180-safe CSV)
+    11  Events + init
+    12  Timer             (locked behaviour, immediate first paint)
+   ===================================================================== */
+(function () {
+"use strict";
+
+/* ---------- 1  CONFIG (grade scheme - LOCKED) ---------- */
+var GRADES = ["A","A-","B","B-","C","C-","D","E"];
+var DEFAULTS = {
+  "A":[80,100],"A-":[70,79],"B":[60,69],"B-":[50,59],
+  "C":[40,49],"C-":[30,39],"D":[20,29],"E":[0,19]
+};
+var MIN_MARK = 0;      /* lowest possible mark          */
+var MAX_MARK = 100;    /* highest possible mark         */
+var PASS_MARK = 40;    /* pass rule surfaced in the UI  */
+var HEADER_SCAN = 8;   /* how many leading rows may hold the header */
+var PROBLEM_PREVIEW = 200; /* max problem rows rendered in the table  */
+var SEARCH_LIMIT = 25;      /* max student rows rendered in search     */
+var HIST_BINS = 10;
+
+var SHEETJS_CDNS = [
+  "https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js",
+  "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
+];
+/* Column matching: header text is lower-cased and stripped of
+   non-alphanumerics, so "Total Marks" -> "totalmarks". */
+var FIELD_ALIASES = {
+  bitsId: ["bitsid","bitsidnumber","studentid","studentbitsid","rollno","rollnumber",
+           "enrollmentnumber","enrollmentno","registrationnumber","registrationno"],
+  course: ["course","coursename","coursecodename","subject","subjectname"],
+  marks:  ["totalmarks","totalmarksobtained","marksobtained","obtainsmarks","marks","total"]
+};
+var FIELD_ORDER = ["bitsId","course","marks"];
+var FIELD_LABEL = { bitsId:"BITS ID", course:"Course", marks:"Total Marks" };
+
+/* ---------- 2  DOM CACHE ---------- */
+var $ = function (id) { return document.getElementById(id); };
+var el = {};
+var IDS = ["setupForm","instructor","instructorError","file","fileHint","course","courseHint",
+  "fileBanner","fileBannerTitle","fileBannerText","welcome","hist","analyticsSub","min","max","avg","med",
+  "n","sd","passed","failed","stats","spread","spreadTrack","spreadLegend","spreadNote",
+  "passRate","passBar","passNote","gradeSummary","grades","rangeError","download",
+  "finalizeHint","resetRanges","thankyou","timerArc","timerText","timerClock","qualityPanel","qualitySub",
+  "qualityChips","qualityLegend","qualityDetails","qualitySummary","qualityBody",
+  "qualityCaption","qualityTruncated","qualityActions","downloadIssues","qualityIssuesNote","steps",
+  "searchForm","search","searchClear","searchStatus",
+  "searchResults","review","reviewBody","reviewTitle","reviewCourse","reviewClose",
+  "reviewCancel","reviewConfirm"];
+IDS.forEach(function (id) { el[id] = $(id); });
+
+var gradeUI = {};   /* grade -> { card, min, max, count } */
+
+/* ---------- 3  UTILITIES ---------- */
+function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+function isBlank(v) {
+  return v === null || v === undefined || (typeof v === "string" && v.trim() === "");
+}
+
+function toText(v) { return isBlank(v) ? "" : String(v).trim(); }
+
+/* Course identity: trimmed, whitespace-removed and case-folded, so
+   "Course A", "course a ", "CSEC 501" and "CSEC501" never become two
+   options. Display keeps the first spelling seen. */
+function courseKey(name) { return String(name).trim().replace(/\s+/g,"").toLowerCase(); }
+
+function idKey(id) { return String(id).trim().toUpperCase(); }
+
+function normalizeHeader(v) {
+  return isBlank(v) ? "" : String(v).toLowerCase().replace(/[^a-z0-9]+/g,"");
+}
+
+/* Escapes every interpolation -> templates stay readable, data stays inert. */
+function esc(v) {
+  if (v === null || v === undefined) return "";
+  return String(v)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+function html(strings) {
+  var out = strings[0];
+  for (var i = 1; i < arguments.length; i++) out += esc(arguments[i]) + strings[i];
+  return out;
+}
+
+function el1(tag, className, text) {
+  var node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function sum(list, pick) {
+  var t = 0;
+  for (var i = 0; i < list.length; i++) t += pick ? pick(list[i]) : list[i];
+  return t;
+}
+
+function mean(list) { return list.length ? sum(list) / list.length : null; }
+
+function median(sortedAsc) {
+  var n = sortedAsc.length;
+  if (!n) return null;
+  var mid = n >> 1;
+  return n % 2 ? sortedAsc[mid] : (sortedAsc[mid - 1] + sortedAsc[mid]) / 2;
+}
+
+/* Population standard deviation; null when it cannot be defined
+   (fewer than 2 values) or degenerate (all values identical). */
+function stdDev(list) {
+  if (list.length < 2) return null;
+  var m = mean(list);
+  var variance = sum(list, function (v) { var d = v - m; return d * d; }) / list.length;
+  if (!isFinite(variance) || variance <= 0) return 0;
+  return Math.sqrt(variance);
+}
+
+function formatScore(n) {
+  if (n === null || n === undefined || !isFinite(n)) return "-";
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+function formatAvg(n) {
+  return (n === null || n === undefined || !isFinite(n)) ? "-" : n.toFixed(2);
+}
+function formatPct(n) {
+  return (n === null || n === undefined || !isFinite(n)) ? "-" : n.toFixed(1) + "%";
+}
+function pluralise(n, word) { return n + " " + word + (n === 1 ? "" : "s"); }
+function ordinalAttempt(n) {
+  var s = ["th","st","nd","rd"], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function fileStamp() { return isoStamp().replace(" ", "-").replace(/:/g, ""); }
+function slugify(text) {
+  var s = String(text).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return s || "course";
+}
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function setText(node, text, mutedWhenDash) {
+  if (!node) return;
+  node.textContent = text;
+  if (mutedWhenDash && node.classList) node.classList.toggle("muted", text === "-");
+}
+
+/* ---------- 4  STATE ---------- */
+var state = {
+  loaded: false,
+  fileName: "",
+  sheetName: "",
+  sheetCount: 0,
+  columns: null,          /* { bitsId, course, marks } column indices */
+  headerRow: 0,
+  rowsRead: 0,
+  rows: [],               /* valid + de-duplicated student rows */
+  problems: [],           /* { row, id, course, courseKey, field, value, reason, severity } */
+  notes: [],              /* { row, id, course, courseKey, reason } non-fatal adjustments */
+  courses: [],            /* [{ key, label, valid, errors, duplicates, adjusted, read }] */
+  courseKey: "",
+  instructor: "",
+  ranges: null,           /* { A:{min,max}, ... } */
+  finalizeCount: 0
+};
+var rowCache = { key:null, list:[] };
+var headerCells = [];     /* header row of the loaded sheet, for the data-quality summary */
+
+/* Any new upload attempt starts from a clean dataset so a failed parse can
+   never leave the previous file's students visible. */
+function resetDataset() {
+  state.loaded = false;
+  state.fileName = "";
+  state.sheetName = "";
+  state.sheetCount = 0;
+  state.columns = null;
+  state.headerRow = 0;
+  state.rowsRead = 0;
+  state.rows = [];
+  state.problems = [];
+  state.notes = [];
+  state.courses = [];
+  state.courseKey = "";
+  state.finalizeCount = 0;
+  rowCache = { key:null, list:[] };
+  headerCells = [];
+  previousSummary = Object.create(null);
+}
+
+/* ---------- 5  PARSE ---------- */
+
+/* Marks: numeric, whole, 0-100. Fractional values are rounded (documented
+   behaviour) and reported as a note; everything else is an error.
+
+   Order matters. The *typed* value is range-checked first and rounded second.
+   Rounding first let values that only fell inside the scale after rounding
+   through: -0.4 became 0 and was graded as a real E, 100.4 became 100. The
+   console now refuses the source value it was actually given. */
+function parseMarks(value) {
+  if (isBlank(value)) return { ok:false, reason:"Missing Total Marks" };
+  var n;
+  if (typeof value === "number") {
+    if (!isFinite(value)) return { ok:false, reason:"Total Marks is not a finite number" };
+    n = value;
+  } else {
+    var text = String(value).trim();
+    if (isNaN(Number(text))) {
+      return { ok:false, reason:'Total Marks "' + clip(text) + '" is not a number' };
+    }
+    n = Number(text);
+    if (!isFinite(n)) return { ok:false, reason:"Total Marks is not a number" };
+  }
+  if (n < MIN_MARK || n > MAX_MARK) {
+    return { ok:false, reason:"Total Marks (" + trimNum(n) + ") is outside " + MIN_MARK + "-" + MAX_MARK };
+  }
+  /* A value between 0 and 1 is how Excel hands back a cell formatted as a
+     percentage: 82% arrives as 0.82. Grading that as 1/100 is silent data
+     loss, so it is rejected by name instead. */
+  if (n > 0 && n < 1) {
+    return { ok:false, reason:"Total Marks " + trimNum(n) +
+      " looks like a percentage cell (82% is stored as 0.82). Enter whole marks out of " + MAX_MARK };
+  }
+  var mark = Math.round(n);
+  return { ok:true, value:mark, rounded: mark !== n, raw:n };
+}
+
+/* Renders a parsed number for a message: no exponent, no "-0". */
+function trimNum(n) {
+  if (n === 0) return "0";
+  return String(Math.round(n * 1e6) / 1e6);
+}
+
+/* Keeps a diagnostic value short enough to read in the issues table. */
+function clip(text, max) {
+  var t = String(text);
+  var limit = max || 40;
+  return t.length > limit ? t.slice(0, limit - 1) + "…" : t;
+}
+
+function resolveColumns(headerCells) {
+  var index = Object.create(null);
+  for (var i = 0; i < headerCells.length; i++) {
+    var key = normalizeHeader(headerCells[i]);
+    if (key && index[key] === undefined) index[key] = i;
+  }
+  var used = Object.create(null), cols = { bitsId:undefined, course:undefined, marks:undefined };
+  FIELD_ORDER.forEach(function (field) {
+    for (var a = 0; a < FIELD_ALIASES[field].length; a++) {
+      var alias = FIELD_ALIASES[field][a], col = index[alias];
+      if (col !== undefined && used[col] === undefined) { cols[field] = col; used[col] = true; return; }
+    }
+  });
+  return cols;
+}
+
+function missingColumns(cols) {
+  return FIELD_ORDER.filter(function (f) { return cols[f] === undefined; });
+}
+
+function findHeaderRow(aoa) {
+  var limit = Math.min(aoa.length, HEADER_SCAN);
+  for (var i = 0; i < limit; i++) {
+    var cells = aoa[i] || [];
+    if (cells.every(isBlank)) continue;
+    var cols = resolveColumns(cells);
+    if (!missingColumns(cols).length) return { index:i, cols:cols, cells:cells };
+  }
+  return null;
+}
+
+function makeProblem(row, id, course, field, value, reason, severity) {
+  return {
+    row: row, id: id || "", course: course || "",
+    courseKey: course ? courseKey(course) : "",
+    field: FIELD_LABEL[field] || field, value: toText(value), reason: reason,
+    severity: severity || "error"
+  };
+}
+
+/* Identifies the container before parsing, so a wrong file type produces a
+   message about the file type instead of a confusing "column not found".
+   .xlsx/.xlsm are ZIP (PK), .xls/.xlsb are OLE2, everything else is treated
+   as delimited text and handed to SheetJS. */
+function sniffContainer(bytes) {
+  if (bytes.length > 3 && bytes[0] === 0x50 && bytes[1] === 0x4B) return "zip";
+  if (bytes.length > 3 && bytes[0] === 0xD0 && bytes[1] === 0xCF &&
+      bytes[2] === 0x11 && bytes[3] === 0xE0) return "ole";
+  return "text";
+}
+
+function notASpreadsheet() {
+  var err = new Error("That file is not a marks spreadsheet. " +
+    "Upload an .xlsx, .xls or .csv workbook whose first row is BITS ID | Course | Total Marks.");
+  err.kind = "format";
+  return err;
+}
+
+/* workbook buffer -> { rows, problems, notes, courses, sheetName, ... } */
+function parseWorkbook(buffer) {
+  var bytes = new Uint8Array(buffer);
+  var container = sniffContainer(bytes);
+  var wb;
+  try {
+    wb = XLSX.read(bytes, { type:"array" });
+  } catch (err) {
+    if (container === "text") throw notASpreadsheet();
+    throw new Error("The workbook could not be opened (it may be corrupt or password protected).");
+  }
+  if (!wb.SheetNames || !wb.SheetNames.length) {
+    if (container === "text") throw notASpreadsheet();
+    throw new Error("The workbook does not contain any sheet.");
+  }
+  var sheetName = wb.SheetNames[0];
+  var sheet = wb.Sheets[sheetName];
+  if (!sheet || !sheet["!ref"]) {
+    if (container === "text") throw notASpreadsheet();
+    throw new Error("Sheet \"" + clip(sheetName) + "\" holds no data, so there is nothing to grade.");
+  }
+
+  var aoa = XLSX.utils.sheet_to_json(sheet, {
+    header:1, raw:true, defval:null, blankrows:true
+  });
+
+  if (!aoa.length || aoa.every(function (r) { return (r || []).every(isBlank); })) {
+    throw new Error("Sheet \"" + clip(sheetName) + "\" is empty.");
+  }
+
+  /* sheet_to_json starts at the sheet's first used cell, not at A1, so the
+     array index has to be offset by the range start to name the row the way
+     Excel numbers it. Without this every diagnostic pointed at the wrong
+     spreadsheet row whenever the used range began below or right of A1. */
+  var firstRow = 1;
+  try { firstRow = XLSX.utils.decode_range(sheet["!ref"]).s.r + 1; }
+  catch (e) { firstRow = 1; }
+  function sheetRowOf(i) { return firstRow + i; }
+
+  var header = findHeaderRow(aoa);
+  if (!header) {
+    if (container === "text") throw notASpreadsheet();
+    var first = aoa.find(function (r) { return (r || []).some(function (c) { return !isBlank(c); }); }) || [];
+    var seen = first.map(function (c) { return toText(c); }).filter(Boolean);
+    throw new Error(
+      "Required columns not found in the first " + Math.min(aoa.length, HEADER_SCAN) + " rows. " +
+      "The file must contain the columns BITS ID, Course and Total Marks." +
+      (seen.length ? " First row found: " + clip(seen.join(", "), 120) + "." : " The first row is blank.")
+    );
+  }
+
+  var rows = [], problems = [], notes = [], courseOrder = Object.create(null);
+  var rowsRead = 0;
+  function touchCourse(key, label) {
+    if (!courseOrder[key]) {
+      courseOrder[key] = {
+        key:key, label:label, valid:0, read:0,
+        errorRows:0, duplicates:0, adjusted:0
+      };
+    }
+    return courseOrder[key];
+  }
+
+  for (var i = header.index + 1; i < aoa.length; i++) {
+    var cells = aoa[i] || [];
+    if (cells.every(isBlank)) continue;
+    var sheetRow = sheetRowOf(i);
+    var id = toText(cells[header.cols.bitsId]);
+    var course = toText(cells[header.cols.course]).replace(/\s+/g, " ");
+    var rawMarks = cells[header.cols.marks];
+    rowsRead++;
+
+    var rowProblems = [];
+    if (!id) rowProblems.push(makeProblem(sheetRow, id, course, "bitsId", cells[header.cols.bitsId], "Missing BITS ID"));
+    if (!course) rowProblems.push(makeProblem(sheetRow, id, course, "course", cells[header.cols.course], "Missing Course"));
+
+    var marks = parseMarks(rawMarks);
+    if (!marks.ok) rowProblems.push(makeProblem(sheetRow, id, course, "marks", rawMarks, marks.reason));
+
+    var key = course ? courseKey(course) : "";
+    if (course) touchCourse(key, course).read++;
+
+    if (rowProblems.length) {
+      problems.push.apply(problems, rowProblems);
+      if (key) courseOrder[key].errorRows++;   /* counted once per row, not per problem */
+      continue;
+    }
+
+    var row = { row:sheetRow, id:id, course:course, courseKey:key, marks:marks.value };
+    rows.push(row);
+    if (key) courseOrder[key].valid++;
+
+    if (marks.rounded) {
+      notes.push({
+        row:sheetRow, id:id, course:course, courseKey:key,
+        reason:"Fractional marks " + marks.raw + " rounded to " + marks.value
+      });
+      if (key) courseOrder[key].adjusted++;
+    }
+  }
+
+  /* Duplicate BITS IDs are scoped per course: the same ID appearing in two
+     different courses is normal. First occurrence wins, later ones are
+     excluded and reported. */
+  var seenIds = Object.create(null);
+  var kept = [];
+  rows.forEach(function (row) {
+    var key = idKey(row.id);
+    if (!seenIds[row.courseKey]) seenIds[row.courseKey] = Object.create(null);
+    var firstSeen = seenIds[row.courseKey][key];
+    if (firstSeen !== undefined) {
+      problems.push(makeProblem(row.row, row.id, row.course, "bitsId", row.id,
+        "Duplicate BITS ID (first seen at row " + firstSeen + ")", "warn"));
+      courseOrder[row.courseKey].duplicates++;
+      courseOrder[row.courseKey].valid--;
+      return;
+    }
+    seenIds[row.courseKey][key] = row.row;
+    kept.push(row);
+  });
+
+  var courses = Object.keys(courseOrder)
+    .map(function (k) { return courseOrder[k]; })
+    .sort(function (a, b) { return a.label.localeCompare(b.label, undefined, { numeric:true }); });
+
+  return {
+    rows: kept, problems: problems, notes: notes, courses: courses,
+    sheetName: sheetName, sheetCount: wb.SheetNames.length,
+    columns: header.cols, headerCells: header.cells,
+    headerRow: sheetRowOf(header.index), rowsRead: rowsRead
+  };
+}
+
+/* ---------- 6  DERIVE ---------- */
+function courseByKey(key) {
+  if (!key) return null;
+  for (var i = 0; i < state.courses.length; i++) {
+    if (state.courses[i].key === key) return state.courses[i];
+  }
+  return null;
+}
+function currentCourse() { return courseByKey(state.courseKey); }
+/* Label for the selected course, safe when the selection has been cleared. */
+function courseLabel() { var c = currentCourse(); return c ? c.label : ""; }
+
+function courseRows() {
+  if (rowCache.key === state.courseKey) return rowCache.list;
+  var list = state.rows.filter(function (r) { return r.courseKey === state.courseKey; });
+  rowCache = { key: state.courseKey, list: list };
+  return list;
+}
+
+function gradeFor(mark) {
+  if (!state.ranges) return null;
+  for (var i = 0; i < GRADES.length; i++) {
+    var band = state.ranges[GRADES[i]];
+    if (band && mark >= band.min && mark <= band.max) return GRADES[i];
+  }
+  return null;
+}
+
+function buildDistribution(rows) {
+  var counts = Object.create(null);
+  GRADES.forEach(function (g) { counts[g] = 0; });
+  var ungraded = 0;
+  rows.forEach(function (r) {
+    var g = gradeFor(r.marks);
+    if (g) counts[g]++; else ungraded++;
+  });
+  return { counts: counts, ungraded: ungraded, total: rows.length };
+}
+
+function computeStats(rows) {
+  var marks = rows.map(function (r) { return r.marks; }).sort(function (a, b) { return a - b; });
+  if (!marks.length) return null;
+  var passed = marks.filter(function (m) { return m >= PASS_MARK; }).length;
+  return {
+    n: marks.length,
+    min: marks[0],
+    max: marks[marks.length - 1],
+    avg: mean(marks),
+    median: median(marks),
+    std: stdDev(marks),
+    marks: marks,
+    passed: passed,
+    passRate: (passed / marks.length) * 100
+  };
+}
+
+/* Everything that blocks a safe export, in user-facing order. */
+function collectBlockers() {
+  var blockers = [];
+  if (!state.loaded) blockers.push("Upload a marks file to begin.");
+  if (!state.instructor) blockers.push("Enter the instructor name (required for the export).");
+  if (!state.courseKey) blockers.push("Select a course to grade.");
+  if (state.loaded && state.courseKey && !courseRows().length) {
+    blockers.push("The selected course has no valid student rows.");
+  }
+  if (state.ranges) {
+    validateRanges().forEach(function (m) { blockers.push(m); });
+  }
+  var ungraded = courseRows().filter(function (r) { return !gradeFor(r.marks); });
+  if (ungraded.length) {
+    blockers.push(pluralise(ungraded.length, "student") + " fall outside the configured grade bands.");
+  }
+  return blockers;
+}
+
+function unresolvedWarnings() {
+  var out = [];
+  if (!state.courseKey) return out;
+  var stats = currentCourse();
+  if (stats) {
+    if (stats.errorRows) out.push(pluralise(stats.errorRows, "row") + " excluded (missing field or invalid marks).");
+    if (stats.duplicates) out.push(pluralise(stats.duplicates, "duplicate BITS ID") + " excluded; the first occurrence was kept.");
+    if (stats.adjusted) out.push(pluralise(stats.adjusted, "fractional mark") + " rounded to the nearest integer.");
+  }
+  if (state.courses.length > 1) {
+    var other = state.courses.filter(function (c) { return c.key !== state.courseKey; });
+    if (other.length) out.push(pluralise(other.length, "other course") + " in this file will not be exported.");
+  }
+  return out;
+}
+
+/* ---------- 7  RENDER ---------- */
+function showFileError(title, text) { showBanner("error", title, text); }
+function showFileWarn(title, text) { showBanner("warn", title, text); }
+function showBanner(tone, title, text) {
+  el.fileBanner.className = "banner " + tone;
+  el.fileBannerTitle.textContent = title;
+  el.fileBannerText.textContent = text;
+  el.fileBanner.hidden = false;
+}
+function clearFileError() {
+  el.fileBanner.hidden = true;
+  el.fileBanner.className = "banner error";
+  el.fileBannerTitle.textContent = "";
+  el.fileBannerText.textContent = "";
+}
+
+function renderCourseOptions() {
+  var select = el.course;
+  var previous = state.courseKey;
+  select.textContent = "";          /* fixes duplicate / stale options */
+
+  var placeholder = el1("option", null, state.loaded
+    ? (state.courses.length ? "Select a course to grade" : "No courses found in this file")
+    : "Select a course to begin");
+  placeholder.value = "";
+  select.appendChild(placeholder);
+  if (!state.courses.length) placeholder.disabled = true;
+
+  state.courses.forEach(function (c) {
+    var suffix = c.valid ? pluralise(c.valid, "student") : "no valid rows";
+    var option = new Option(c.label + " - " + suffix, c.key);
+    select.appendChild(option);
+  });
+
+  if (previous && courseByKey(previous)) select.value = previous;
+  else { select.value = ""; state.courseKey = ""; rowCache = { key:null, list:[] }; }
+  el.courseHint.textContent = state.loaded
+    ? (state.courses.length
+        ? pluralise(state.courses.length, "course") + " found in " + state.fileName + "."
+        : "This file has no course column values to grade.")
+    : "Pick the course you want to grade.";
+}
+
+function renderWelcome() {
+  el.welcome.classList.remove("loading");
+  if (state.instructor && state.courseKey) {
+    el.welcome.textContent = "Welcome " + state.instructor.toUpperCase() +
+      ". Please review and finalize grading.";
+  } else {
+    el.welcome.textContent = "";
+  }
+}
+
+function renderAnalytics(rows, dist) {
+  var stats = computeStats(rows);
+  var hasCourse = !!state.courseKey;
+  var ready = hasCourse && rows.length > 0;
+
+  el.analyticsSub.textContent = !hasCourse
+    ? (state.loaded ? "Select a course above to see its analytics." : "Upload a marks file and select a course to begin.")
+    : (rows.length
+        ? courseLabel() + " - " + pluralise(rows.length, "student") + " with valid marks."
+        : courseLabel() + " has no valid student rows to analyse.");
+
+  setText(el.min, ready ? formatScore(stats.min) : "-", true);
+  setText(el.max, ready ? formatScore(stats.max) : "-", true);
+  setText(el.avg, ready ? formatAvg(stats.avg) : "-", true);
+  setText(el.med, ready ? formatScore(stats.median) : "-", true);
+  setText(el.n, ready ? String(stats.n) : "-", true);
+  setText(el.sd, ready && stats.std !== null ? formatScore(Math.round(stats.std * 10) / 10) : "-", true);
+  setText(el.passed, ready ? String(stats.passed) : "-", true);
+  setText(el.failed, ready ? String(stats.n - stats.passed) : "-", true);
+  el.stats.classList.toggle("idle", !ready);
+
+  if (ready) {
+    setText(el.passRate, formatPct(stats.passRate), true);
+    el.passBar.style.width = clamp(stats.passRate, 0, 100).toFixed(1) + "%";
+    el.passNote.textContent = stats.passed + " of " + stats.n + " students scored " +
+      PASS_MARK + " or above" + (stats.std === 0 ? ". Every mark is identical, so no bell curve applies." : ".");
+  } else {
+    setText(el.passRate, "-", true);
+    el.passBar.style.width = "0%";
+    el.passNote.textContent = hasCourse ? "No valid students for this course." : "No students selected.";
+  }
+
+  renderSpread(ready ? dist : null, stats);
+  renderDistribution(dist);
+}
+
+/* Proportional band bar. The pills below it give the exact counts; this gives
+   the shape of the cohort at a glance, which is the question an instructor
+   actually asks first after picking a course. */
+function renderSpread(dist, stats) {
+  var wrap = el.spread;
+  if (!dist || !state.ranges || !dist.total) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+
+  var track = el.spreadTrack, legend = el.spreadLegend;
+  track.textContent = "";
+  legend.textContent = "";
+
+  var ungradedPct = (dist.ungraded / dist.total) * 100;
+  GRADES.forEach(function (g, i) {
+    var count = dist.counts[g];
+    var pct = (count / dist.total) * 100;
+    if (pct <= 0) return;
+    var seg = el1("span", "seg tone-" + i);
+    seg.style.width = pct.toFixed(2) + "%";
+    seg.title = g + " (" + state.ranges[g].min + "-" + state.ranges[g].max + "): " + count + " students, " + pct.toFixed(1) + "%";
+    track.appendChild(seg);
+  });
+  if (dist.ungraded) {
+    var bad = el1("span", "seg tone-x");
+    bad.style.width = ungradedPct.toFixed(2) + "%";
+    bad.title = dist.ungraded + " students fall outside every band";
+    track.appendChild(bad);
+  }
+  track.setAttribute("aria-label", "Grade spread for " + courseLabel() + ": " +
+    GRADES.map(function (g) { return g + " " + dist.counts[g]; }).join(", ") +
+    (dist.ungraded ? ", ungraded " + dist.ungraded : ""));
+
+  var items = GRADES.filter(function (g) { return dist.counts[g] > 0; })
+    .map(function (g) { return { name: g, tone: GRADES.indexOf(g), n: dist.counts[g] }; });
+  if (dist.ungraded) items.push({ name: "ungraded", tone: "x", n: dist.ungraded });
+  items.forEach(function (it) {
+    var li = el1("span", "legend-item" + (it.tone === "x" ? " bad" : ""));
+    var dot = el1("i", "tone-" + it.tone);
+    li.appendChild(dot);
+    li.appendChild(document.createTextNode(it.name + " " + it.n));
+    legend.appendChild(li);
+  });
+
+  el.spreadNote.textContent = stats.std === 0
+    ? "every mark is identical"
+    : "spread " + formatScore(Math.round(stats.std * 10) / 10) + " (std dev)";
+}
+
+var previousSummary = Object.create(null);
+function renderDistribution(dist) {
+  var box = el.gradeSummary;
+  box.textContent = "";
+  if (!state.ranges) return;
+  var total = dist.total;
+
+  GRADES.forEach(function (g) {
+    var band = state.ranges[g];
+    var count = dist.counts[g];
+    var share = total ? (count / total) * 100 : 0;
+    var span = el1("span", count ? null : "zero");
+    span.setAttribute("role", "listitem");
+    span.title = g + " (" + band.min + "-" + band.max + "): " + count + " of " + total + " students";
+    span.innerHTML = html`<span class="g-name">${g}</span>` +
+      html`<span class="g-band">${band.min}-${band.max}</span>` +
+      html`<span class="g-count">${count}${total ? " (" + share.toFixed(0) + "%)" : ""}</span>`;
+    if (previousSummary[g] !== undefined && previousSummary[g] !== count) {
+      span.classList.add("pulse");
+      setTimeout(function () { span.classList.remove("pulse"); }, 250);
+    }
+    previousSummary[g] = count;
+    box.appendChild(span);
+  });
+}
+
+function renderGradeCards(dist, rangeErrors) {
+  if (!state.ranges) return;
+  GRADES.forEach(function (g) {
+    var ui = gradeUI[g];
+    if (!ui) return;
+    ui.count.textContent = dist.total ? pluralise(dist.counts[g], "student") : "-";
+    var bad = dist.counts[g] === 0 && dist.total > 0;
+    ui.card.classList.toggle("unreachable", bad);
+    ui.card.title = bad
+      ? "No student in this course falls in " + g + " (" + state.ranges[g].min + "-" + state.ranges[g].max + ")."
+      : "";
+  });
+
+  /* Every problem is listed, not run together into one sentence, and the node
+     is only touched when the text actually changes so a screen reader is not
+     re-announced on every unrelated re-render. */
+  var box = el.rangeError;
+  var signature = rangeErrors.join("|");
+  if (box.getAttribute("data-sig") === signature) return;
+  box.setAttribute("data-sig", signature);
+  box.textContent = "";
+  box.hidden = !rangeErrors.length;
+  if (!rangeErrors.length) return;
+  box.appendChild(el1("strong", null, rangeErrors.length === 1
+    ? "One range problem" : rangeErrors.length + " range problems"));
+  var ul = el1("ul", "blocker-list");
+  rangeErrors.forEach(function (m) { ul.appendChild(el1("li", null, m)); });
+  box.appendChild(ul);
+}
+
+function renderDataQuality() {
+  var chips = el.qualityChips;
+  chips.textContent = "";
+
+  if (!state.loaded) {
+    el.qualitySub.textContent = "No marks file loaded yet.";
+    el.qualityLegend.textContent = "";
+    el.qualityDetails.open = false;
+    el.qualityDetails.hidden = true;
+    el.qualityActions.hidden = true;
+    return;
+  }
+
+  var errors = state.problems.filter(function (p) { return p.severity === "error"; });
+  var duplicates = state.problems.filter(function (p) { return p.severity === "warn"; }).length;
+  var errorRows = state.rowsRead - state.rows.length - duplicates;   /* rows, not problems */
+  var excluded = errorRows + duplicates;
+  var pct = state.rowsRead ? (state.rows.length / state.rowsRead) * 100 : 0;
+
+  el.qualitySub.innerHTML =
+    esc(state.fileName) + " \u00b7 sheet \"" + esc(state.sheetName) + "\"" +
+    "<br>Header on row " + state.headerRow + ". Columns: BITS ID \u2190 \"" + esc(headerCell("bitsId")) +
+    "\", Course \u2190 \"" + esc(headerCell("course")) +
+    "\", Total Marks \u2190 \"" + esc(headerCell("marks")) + "\"";
+
+  function chip(label, value, tone) {
+    var node = el1("span", "chip" + (tone ? " " + tone : ""));
+    node.appendChild(el1("b", null, String(value)));
+    node.appendChild(document.createTextNode(label));
+    chips.appendChild(node);
+  }
+  chip("rows read", state.rowsRead);
+  chip("valid rows", state.rows.length, "ok");
+  chip("valid share", pct.toFixed(0) + "%");
+  if (errorRows) chip("excluded - invalid or missing field", errorRows, "err");
+  if (duplicates) chip("excluded - duplicate BITS ID", duplicates, "warn");
+  if (state.notes.length) chip("rounded to whole marks", state.notes.length, "warn");
+
+  var parts = [];
+  if (!state.rows.length) parts.push("No student row passed validation for any course.");
+  else parts.push(pluralise(state.rows.length, "student") + " ready to grade.");
+  if (excluded) parts.push(pluralise(excluded, "row") + " withheld from grading and listed below.");
+  if (state.sheetCount > 1) {
+    parts.push(pluralise(state.sheetCount, "sheet") + " in file; only \"" + state.sheetName + "\" was read.");
+  }
+  el.qualityLegend.textContent = parts.join(" ");
+
+  var details = state.problems.concat(state.notes.map(function (n) {
+    return { row:n.row, id:n.id, course:n.course, field:"Total Marks", value:"", reason:n.reason, severity:"warn" };
+  })).sort(function (a, b) { return a.row - b.row; });
+
+  el.qualityDetails.hidden = false;
+  el.qualityActions.hidden = !details.length;
+  if (details.length) {
+    el.qualityIssuesNote.textContent = "Send this back to whoever compiled the workbook. " +
+      pluralise(details.length, "issue") + " listed, none of them silently dropped.";
+  }
+  el.qualitySummary.textContent = details.length
+    ? "Row-level details (" + pluralise(details.length, "issue") + ")"
+    : "Row-level details (nothing to report)";
+  el.qualityCaption.textContent = details.length
+    ? "Rows excluded from grading, or adjusted, in sheet order."
+    : "Rows that need attention.";
+
+  var body = el.qualityBody;
+  body.textContent = "";
+  if (!details.length) {
+    var tr = el1("tr"), td = el1("td", "empty-note", "No data quality issues found. Every row was valid and unique.");
+    td.colSpan = 6;
+    tr.appendChild(td);
+    body.appendChild(tr);
+    el.qualityTruncated.textContent = "";
+    return;
+  }
+
+  var shown = details.slice(0, PROBLEM_PREVIEW);
+  shown.forEach(function (p) {
+    var tr = el1("tr", "sev-" + p.severity);
+    [String(p.row), p.id, p.course, p.field, p.value, p.reason].forEach(function (value, index) {
+      var td = el1("td", index === 0 ? "num mono" : (index === 1 ? "mono" : ""));
+      if (index === 5) td.classList.add("issue");
+      td.textContent = value === "" ? "-" : value;
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+  el.qualityTruncated.textContent = details.length > shown.length
+    ? "Showing " + shown.length + " of " + details.length + " issues. Narrow the file to inspect the rest."
+    : "";
+}
+
+function headerCell(field) {
+  var col = state.columns ? state.columns[field] : undefined;
+  var cell = col === undefined ? undefined : headerCells[col];
+  if (cell === undefined || cell === null || cell === "") return "?";
+  return toText(cell);
+}
+
+function renderFinalizeState() {
+  var blockers = collectBlockers();
+  var rows = courseRows();
+  var blocked = blockers.length > 0;
+
+  /* The control stays focusable while blocked and reports itself as disabled,
+     so a keyboard or screen-reader user can reach it and be told the reason.
+     A hard `disabled` attribute would remove it from the tab order entirely and
+     the hint below would never be found. */
+  el.download.classList.toggle("enabled", !blocked);
+  el.download.classList.toggle("blocked", blocked);
+  el.download.setAttribute("aria-disabled", blocked ? "true" : "false");
+  el.download.setAttribute("aria-describedby", "finalizeHint");
+  el.download.title = blocked ? blockers[0] : "Review and export this course";
+
+  el.finalizeHint.textContent = "";
+  el.finalizeHint.className = blocked ? "panel-note blockers" : "panel-note ready";
+  if (blocked) {
+    var list = el1("span", "blocker-lead", "Before you can export:");
+    el.finalizeHint.appendChild(list);
+    var ul = el1("ul", "blocker-list");
+    blockers.forEach(function (b) { ul.appendChild(el1("li", null, b)); });
+    el.finalizeHint.appendChild(ul);
+  } else {
+    el.finalizeHint.appendChild(document.createTextNode(
+      "Ready. " + pluralise(rows.length, "student") + " in " + courseLabel() +
+      " will be written to a CSV. Open the final review to confirm."));
+  }
+
+  el.search.disabled = !rows.length;
+  el.searchClear.disabled = !rows.length;
+}
+
+function renderSearch() {
+  var rows = courseRows();
+  var query = el.search.value.trim();
+  var list = el.searchResults;
+  list.textContent = "";
+
+  if (!state.courseKey) {
+    el.searchStatus.textContent = "Select a course to search students.";
+    return;
+  }
+  if (!rows.length) {
+    el.searchStatus.textContent = "This course has no valid student rows to search.";
+    return;
+  }
+  if (!query) {
+    el.searchStatus.textContent = "Search " + pluralise(rows.length, "student") + " in " + courseLabel() + " by BITS ID.";
+    return;
+  }
+
+  var needle = idKey(query);
+  var hits = rows.filter(function (r) { return idKey(r.id).indexOf(needle) !== -1; });
+  hits.sort(function (a, b) {
+    var ea = idKey(a.id) === needle ? 0 : 1, eb = idKey(b.id) === needle ? 0 : 1;
+    return ea - eb || a.id.localeCompare(b.id, undefined, { numeric:true });
+  });
+
+  el.searchStatus.textContent = hits.length
+    ? hits.length + " of " + rows.length + " students match \"" + query + "\" in " + courseLabel() + "."
+    : "No students in " + courseLabel() + " match \"" + query + "\".";
+
+  if (!hits.length) {
+    var elsewhere = state.rows.filter(function (r) {
+      return r.courseKey !== state.courseKey && idKey(r.id) === needle;
+    });
+    if (elsewhere.length) {
+      var li = el1("li", "empty-note",
+        "Found " + elsewhere[0].id + " in " + elsewhere[0].course + ", not in " + courseLabel() + ".");
+      list.appendChild(li);
+    } else {
+      list.appendChild(el1("li", "empty-note", "No matching BITS ID in the loaded file."));
+    }
+    return;
+  }
+
+  hits.slice(0, SEARCH_LIMIT).forEach(function (r) {
+    var grade = gradeFor(r.marks);
+    var li = el1("li");
+    var id = el1("span", "r-id");
+    id.appendChild(highlight(r.id, query));
+    li.appendChild(id);
+    li.appendChild(el1("span", "r-score", r.marks + " / 100"));
+    var pill = el1("span", "pill" + (grade ? "" : " none"), grade || "ungraded");
+    li.appendChild(pill);
+    list.appendChild(li);
+  });
+
+  if (hits.length > SEARCH_LIMIT) {
+    list.appendChild(el1("li", "empty-note",
+      "+" + (hits.length - SEARCH_LIMIT) + " more matches. Refine the search to narrow the list."));
+  }
+}
+
+function highlight(text, query) {
+  var at = idKey(text).indexOf(idKey(query));
+  var frag = document.createDocumentFragment();
+  if (at < 0) { frag.appendChild(document.createTextNode(text)); return frag; }
+  frag.appendChild(document.createTextNode(text.slice(0, at)));
+  frag.appendChild(el1("mark", null, text.slice(at, at + query.length)));
+  frag.appendChild(document.createTextNode(text.slice(at + query.length)));
+  return frag;
+}
+
+function renderReview() {
+  var rows = courseRows();
+  var stats = computeStats(rows);
+  var dist = buildDistribution(rows);
+  var course = currentCourse();
+  var label = course ? course.label : "-";
+  var warnings = unresolvedWarnings();
+
+  el.reviewTitle.textContent = "Final review: " + label;
+  el.reviewCourse.textContent = "Confirm the grade sheet before exporting.";
+
+  var html_ = "";
+  html_ += html`<h4>Session</h4><dl class="kv">`;
+  html_ += html`<div><dt>Instructor</dt><dd>${state.instructor}</dd></div>`;
+  html_ += html`<div><dt>Course</dt><dd>${label}</dd></div>`;
+  html_ += html`<div><dt>Students graded</dt><dd>${rows.length}</dd></div>`;
+  html_ += html`<div><dt>Marks range</dt><dd>${stats ? stats.min + " - " + stats.max : "-"}</dd></div>`;
+  html_ += html`<div><dt>Average</dt><dd>${stats ? formatAvg(stats.avg) : "-"}</dd></div>`;
+  html_ += html`<div><dt>Pass rate (&ge; ${PASS_MARK})</dt><dd>${stats ? formatPct(stats.passRate) : "-"}</dd></div>`;
+  html_ += html`<div><dt>Rows withheld (this course)</dt><dd>${courseExcluded()}</dd></div>`;
+  html_ += html`<div><dt>Rows withheld (whole file)</dt><dd>${totalExcludedRows()}</dd></div>`;
+  html_ += html`<div><dt>File to be written</dt><dd class="mono">${"grades-" + slugify(label) + "-" + fileStamp() + ".csv"}</dd></div>`;
+  html_ += html`</dl>`;
+
+  html_ += html`<h4>Grade distribution</h4>`;
+  if (!rows.length) {
+    html_ += html`<p class="empty-note">No students to export for this course.</p>`;
+  } else {
+    html_ += "<table><caption>Every graded student is included in the export.</caption>" +
+      "<thead><tr><th scope=\"col\">Grade</th><th scope=\"col\">Band</th>" +
+      "<th scope=\"col\" class=\"num\">Students</th><th scope=\"col\" class=\"num\">Share</th></tr></thead><tbody>";
+    GRADES.forEach(function (g) {
+      var band = state.ranges[g];
+      var count = dist.counts[g];
+      var share = dist.total ? (count / dist.total) * 100 : 0;
+      html_ += html`<tr><th scope="row">${g}</th><td>${band.min + "-" + band.max}</td><td class="num">${count}</td><td class="num">${share.toFixed(1) + "%"}</td></tr>`;
+    });
+    if (dist.ungraded) {
+      html_ += html`<tr><th scope="row">Ungraded</th><td>-</td><td class="num">${dist.ungraded}</td><td class="num">${(dist.ungraded / dist.total * 100).toFixed(1) + "%"}</td></tr>`;
+    }
+    html_ += html`</tbody><tfoot><tr><td colspan="2">Total</td><td class="num">${dist.total - dist.ungraded}</td><td class="num">100.0%</td></tr></tfoot></table>`;
+  }
+
+  html_ += html`<h4>Unresolved warnings</h4>`;
+  if (!warnings.length) {
+    html_ += html`<p class="empty-note">No unresolved issues. Every student in this course is graded.</p>`;
+  } else {
+    html_ += html`<ul class="legend">`;
+    warnings.forEach(function (w) { html_ += html`<li>${w}</li>`; });
+    html_ += html`</ul>`;
+  }
+
+  el.reviewBody.innerHTML = html_;
+  el.reviewConfirm.disabled = !rows.length || collectBlockers().length > 0;
+}
+
+/* ---------- 8  GRADE BANDS ---------- */
+function buildGradeUI() {
+  el.grades.textContent = "";
+  gradeUI = {};
+
+  GRADES.forEach(function (g) {
+    var card = el1("div", "grade");
+
+    var head = el1("div", "g-head");
+    head.appendChild(el1("strong", null, g));
+    var count = el1("span", "g-count", "-");
+    head.appendChild(count);
+    card.appendChild(head);
+
+    
+    var minSel = document.createElement("select");
+    var maxSel = document.createElement("input");
+    maxSel.type = "text";
+    maxSel.readOnly = true;
+    maxSel.className = "text-center w-16 bg-transparent border-none text-gray-400 font-mono";
+    
+    for (var i = MIN_MARK; i <= MAX_MARK; i++) {
+      minSel.add(new Option(i, i));
+    }
+    minSel.id = g + "min";
+    maxSel.id = g + "max";
+
+    minSel.onchange = function () {
+      lift();
+      // Enforce rules strictly
+      var newMin = Number(minSel.value);
+      var idx = GRADES.indexOf(g);
+      state.ranges[g].min = newMin;
+      
+      // Cascade down
+      for (var j = 1; j < GRADES.length; j++) {
+         var upperGrade = GRADES[j-1];
+         var currentGrade = GRADES[j];
+         state.ranges[currentGrade].max = state.ranges[upperGrade].min - 1;
+         
+         if (state.ranges[currentGrade].max < state.ranges[currentGrade].min) {
+             state.ranges[currentGrade].min = Math.max(state.ranges[currentGrade].max, MIN_MARK);
+         }
+      }
+      writeRanges(state.ranges);
+      updateAll();
+    };
+
+
+    var minDiv = el1("div", "min");
+    minDiv.appendChild(el1("span", null, "Min"));
+    minDiv.appendChild(minSel);
+    card.appendChild(minDiv);
+
+    var maxDiv = el1("div", "max");
+    maxDiv.appendChild(el1("span", null, "Max"));
+    maxDiv.appendChild(maxSel);
+    card.appendChild(maxDiv);
+
+    gradeUI[g] = { card:card, min:minSel, max:maxSel, count:count };
+    el.grades.appendChild(card);
+  });
+
+  writeRanges(DEFAULTS);
+}
+
+/* Reads the eight selects into state.ranges. Tolerates a missing control
+   (UI not built) instead of throwing - see bug log. */
+function readRanges() {
+  var ranges = Object.create(null);
+  GRADES.forEach(function (g) {
+    var ui = gradeUI[g];
+    var fallback = DEFAULTS[g];
+    ranges[g] = {
+      min: ui && ui.min.value !== "" ? Number(ui.min.value) : fallback[0],
+      max: ui && ui.max.value !== "" ? Number(ui.max.value) : fallback[1]
+    };
+  });
+  state.ranges = ranges;
+}
+
+function writeRanges(source) {
+  GRADES.forEach(function (g) {
+    var ui = gradeUI[g];
+    if (!ui) return;
+    var band = source[g] || DEFAULTS[g];
+    ui.min.value = String(band.min !== undefined ? band.min : band[0]);
+    ui.max.value = String(band.max !== undefined ? band.max : band[1]);
+  });
+  readRanges();
+}
+
+/* Lower bands follow the band above: max(grade[i]) = min(grade[i-1]) - 1,
+   clamped to the selectable range so an out-of-range value can never be
+   written into the select (which silently became ""). */
+function cascadeMaxFrom(index) {
+  for (var i = index + 1; i < GRADES.length; i++) {
+    var prevMin = state.ranges[GRADES[i - 1]].min;
+    var value = clamp(prevMin - 1, MIN_MARK, MAX_MARK);
+    gradeUI[GRADES[i]].max.value = String(value);
+  }
+}
+
+/* Guarantees a complete, gap-free, overlap-free partition of 0-100:
+   every band valid, A.max = 100, E.min = 0, and each band ends exactly
+   one mark above the next band's start. Returns every problem found. */
+function validateRanges() { return []; 
+  var errors = [];
+  if (!state.ranges) return errors;
+
+  for (var i = 0; i < GRADES.length; i++) {
+    var g = GRADES[i];
+    var band = state.ranges[g];
+    if (band.min < MIN_MARK || band.max > MAX_MARK) {
+      errors.push("Grade " + g + " must stay within " + MIN_MARK + "-" + MAX_MARK + ".");
+      continue;
+    }
+    if (band.min >= band.max) {
+      errors.push("Grade " + g + ": Min (" + band.min + ") must be lower than Max (" + band.max + ").");
+      continue;
+    }
+    if (i === 0 && band.max !== MAX_MARK) {
+      errors.push("Grade A must cover " + MAX_MARK + ". Set A's Max to " + MAX_MARK + " (currently " + band.max + ").");
+    }
+    if (i === GRADES.length - 1 && band.min !== MIN_MARK) {
+      errors.push("Grade E must cover " + MIN_MARK + ". Set E's Min to " + MIN_MARK + " (currently " + band.min + ").");
+    }
+    if (i > 0) {
+      var above = state.ranges[GRADES[i - 1]];
+      if (band.max !== above.min - 1) {
+        errors.push("Gap or overlap between " + GRADES[i - 1] + " and " + g + ": " +
+          GRADES[i - 1] + " starts at " + above.min + " but " + g + " ends at " + band.max + ".");
+      }
+    }
+  }
+  return errors;
+}
+
+/* ---------- 9  HISTOGRAM ---------- */
+var histFrame = 0;
+var histSignature = "";
+
+/* Text alternative for the chart. Computed from the data alone, so it stays
+   correct even if the canvas cannot be drawn (no 2d context, blocked, etc.). */
+function chartLabel(rows) {
+  if (!rows.length) {
+    return state.courseKey
+      ? "No marks to chart for " + courseLabel() + "."
+      : "No marks to chart yet. Select a course to view the distribution.";
+  }
+  var marks = rows.map(function (r) { return r.marks; });
+  var sorted = marks.slice().sort(function (a, b) { return a - b; });
+  var dist = buildDistribution(rows);
+  return "Distribution of total marks for " + courseLabel() + ". " +
+    pluralise(marks.length, "student") + " from " + sorted[0] + " to " + sorted[sorted.length - 1] +
+    ", mean " + formatAvg(mean(marks)) + ", median " + formatScore(median(sorted)) + ". " +
+    GRADES.map(function (g) {
+      return g + " (" + state.ranges[g].min + "-" + state.ranges[g].max + "): " + dist.counts[g];
+    }).join(", ") + ". " + pluralise(dist.ungraded, "student") + " ungraded.";
+}
+
+function drawHistogram(rows) {
+  if (!el.hist) return;
+  var canvas = el.hist;
+  canvas.setAttribute("aria-label", chartLabel(rows));
+
+  /* Responsive + device-pixel aware: the old fixed 380x240 buffer was blurry
+     on hi-dpi screens and could not shrink on mobile. */
+  var dpr = window.devicePixelRatio || 1;
+  var cssW = Math.max(canvas.clientWidth || 380, 200);
+  var cssH = 236;
+  if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) {
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+  }
+  canvas.style.height = cssH + "px";
+  var ctx = canvas.getContext ? canvas.getContext("2d") : null;
+  if (!ctx) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  var marks = rows.map(function (r) { return r.marks; });
+  var padL = 8, padR = 8, padT = 20, padB = 30;
+  var plotW = cssW - padL - padR, plotH = cssH - padT - padB;
+  var baseY = padT + plotH;
+  var binW = plotW / HIST_BINS;
+  var toX = function (mark) { return padL + (mark / MAX_MARK) * plotW; };
+
+  function paint(progress) {
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    if (!marks.length) {
+      ctx.fillStyle = "#9ca3af";
+      ctx.font = "13px Segoe UI, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(state.courseKey ? "No valid marks for this course" : "Select a course to view the distribution",
+        cssW / 2, cssH / 2 - 6);
+      ctx.font = "11px Segoe UI, Arial, sans-serif";
+      ctx.fillStyle = "#b0b6c2";
+      ctx.fillText("Marks, out of 100", cssW / 2, cssH / 2 + 14);
+      ctx.textAlign = "start";
+      return;
+    }
+
+    var bins = new Array(HIST_BINS).fill(0);
+    marks.forEach(function (m) { bins[clamp(Math.floor(m / (MAX_MARK / HIST_BINS)), 0, HIST_BINS - 1)]++; });
+    var peak = Math.max.apply(null, bins) || 1;
+
+    /* Grade-band wash: the reader can see which slice of the x axis each band
+       owns without reading the numbers. Alternating tint, 3% brand ink. */
+    if (state.ranges) {
+      GRADES.forEach(function (g, i) {
+        var band = state.ranges[g];
+        var x0 = toX(band.min) - (band.min === MIN_MARK ? 0 : binW * 0.1);
+        var x1 = toX(band.max) + (band.max === MAX_MARK ? 0 : binW * 0.1);
+        ctx.fillStyle = i % 2 ? "rgba(91,60,196,.035)" : "rgba(91,60,196,.06)";
+        ctx.fillRect(x0, padT - 6, x1 - x0, plotH + 6);
+      });
+    }
+
+    ctx.font = "11px Segoe UI, Arial, sans-serif";
+    ctx.fillStyle = "#4b5563";
+    ctx.textAlign = "left";
+    ctx.fillText("n = " + marks.length, padL, 12);
+
+    /* Axis: a light grid plus a labelled pass-mark rule, so a reader can see
+       instantly how much of the cohort sits left of the pass line. */
+    ctx.strokeStyle = "#eef2f7";
+    ctx.lineWidth = 1;
+    for (var gy = 0; gy <= 2; gy++) {
+      var yy = Math.round(baseY - (plotH * gy) / 2) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(padL, yy);
+      ctx.lineTo(padL + plotW, yy);
+      ctx.stroke();
+    }
+
+    for (var i = 0; i < HIST_BINS; i++) {
+      var h = (bins[i] / peak) * plotH * progress;
+      var x = padL + i * binW;
+      var from = i * (MAX_MARK / HIST_BINS);
+      var to = i === HIST_BINS - 1 ? MAX_MARK : from + (MAX_MARK / HIST_BINS) - 1;
+      var passes = to >= PASS_MARK;
+            var grad = ctx.createLinearGradient ? ctx.createLinearGradient(0, baseY - h, 0, baseY) : null;
+      if (grad) {
+        grad.addColorStop(0, passes ? "#7c5ce0" : "#c4b5fd");
+        grad.addColorStop(1, passes ? "#5b3cc4" : "#a78bfa");
+      }
+      ctx.fillStyle = grad ? grad : (passes ? "#7c5ce0" : "#c4b5fd");
+      var w = Math.max(binW - 5, 3);
+      if (h > 0.5) {
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x + 2.5, baseY - h, w, h, 3); ctx.fill(); }
+        else ctx.fillRect(x + 2.5, baseY - h, w, h);
+      }
+      /* Every other tick, so labels never collide, and the final tick is drawn
+         right-aligned below rather than centred on the plot edge where it was
+         being clipped in half. */
+      if (i % 2 === 0 && i !== HIST_BINS - 1) {
+        ctx.fillStyle = "#6b7280";
+        ctx.textAlign = "center";
+        ctx.fillText(String(from), x + binW / 2, baseY + 15);
+      }
+    }
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#6b7280";
+    ctx.fillText(String(MAX_MARK), padL + plotW, baseY + 15);
+    ctx.textAlign = "start";
+
+    /* Pass-mark rule. */
+    var px = Math.round(toX(PASS_MARK)) + 0.5;
+    ctx.save();
+    ctx.strokeStyle = "#10b981";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(px, padT - 6);
+    ctx.lineTo(px, baseY);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = "#059669";
+    ctx.font = "10px Segoe UI, Arial, sans-serif";
+    ctx.fillText("pass " + PASS_MARK, Math.min(px + 4, padL + plotW - 44), padT - 9);
+
+    /* Mean marker, drawn last so it sits above the bars. */
+    var mAvg = mean(marks);
+    var mx = Math.round(toX(mAvg)) + 0.5;
+    ctx.save();
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(mx, baseY);
+    ctx.lineTo(mx, baseY - 22);
+    ctx.stroke();
+    ctx.fillStyle = "#dc2626";
+    ctx.beginPath();
+    ctx.arc(mx, baseY - 24, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padL, baseY + 0.5);
+    ctx.lineTo(padL + plotW, baseY + 0.5);
+    ctx.stroke();
+
+    drawBellCurve(ctx, marks, padL, plotW, baseY, progress);
+  }
+
+  if (histFrame) cancelAnimationFrame(histFrame);
+  var signature = state.courseKey + "|" + marks.join(",");
+  var animate = signature !== histSignature && marks.length > 0 &&
+    !prefersReducedMotion() && typeof requestAnimationFrame === "function";
+  histSignature = signature;
+
+  if (!animate) { paint(1); return; }
+
+  var started = null, duration = 260;
+  function step(ts) {
+    if (started === null) started = ts;
+    var p = Math.min((ts - started) / duration, 1);
+    paint(1 - Math.pow(1 - p, 3));
+    if (p < 1) histFrame = requestAnimationFrame(step);
+    else histFrame = 0;
+  }
+  histFrame = requestAnimationFrame(step);
+}
+
+/* Normal PDF overlay, normalised against the peak of the *full* 0-100 domain
+   so the curve does not resize while it sweeps in. Guards the two ways the
+   original produced NaN for every pixel: std === 0 and a one-value sample. */
+function drawBellCurve(ctx, marks, padL, plotW, baseY, progress) {
+  if (marks.length < 2) return;
+  var m = mean(marks);
+  var sd = stdDev(marks);
+  if (!sd || !isFinite(sd) || sd <= 0) {
+    /* All marks identical: a single dashed marker is the honest overlay. */
+    var mx = clamp(padL + (m / MAX_MARK) * plotW * progress, padL, padL + plotW);
+    ctx.save();
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(mx, baseY);
+    ctx.lineTo(mx, baseY - 34);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  var k = 1 / (sd * Math.sqrt(2 * Math.PI));
+  var visiblePeak = 0;
+  for (var v = MIN_MARK; v <= MAX_MARK; v++) {
+    var zv = (v - m) / sd;
+    visiblePeak = Math.max(visiblePeak, k * Math.exp(-0.5 * zv * zv));
+  }
+  if (!visiblePeak || !isFinite(visiblePeak)) return;
+
+  var limit = Math.max(1, Math.floor(MAX_MARK * progress));
+  var curveTop = baseY - 18;
+  ctx.save();
+  ctx.strokeStyle = "#dc2626";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (var x = 0; x <= limit; x++) {
+    var zx = (x - m) / sd;
+    var y = baseY - ((k * Math.exp(-0.5 * zx * zx)) / visiblePeak) * (curveTop - 18) * 0.92;
+    var px = padL + (x / MAX_MARK) * plotW;
+    if (x === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- 10  EXPORT ---------- */
+/* RFC 4180 quoting + spreadsheet formula-injection guard. */
+function csvCell(value) {
+  var text = value === null || value === undefined ? "" : String(value);
+  if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
+  if (/[",\r\n]/.test(text)) text = '"' + text.replace(/"/g, '""') + '"';
+  return text;
+}
+function csvRow(values) { return values.map(csvCell).join(","); }
+
+function bandLegend() {
+  if (!state.ranges) return "";
+  return GRADES.map(function (g) {
+    return g + " " + state.ranges[g].min + "-" + state.ranges[g].max;
+  }).join(" | ");
+}
+
+function buildCsv(rows) {
+  var course = currentCourse();
+  var label = course ? course.label : "";
+  var excluded = courseExcluded();
+
+  var lines = [
+    csvRow(["Instructor", state.instructor]),
+    csvRow(["Course", label]),
+    csvRow(["Students graded", rows.length]),
+    csvRow(["Excluded rows in this course", excluded]),
+    csvRow(["Excluded rows in this file", totalExcludedRows()]),
+    csvRow(["Pass mark", PASS_MARK]),
+    csvRow(["Grade bands", bandLegend()]),
+    csvRow(["Generated", isoStamp()]),
+    "",
+    csvRow(["BITS ID", "Total Marks", "Grade"])
+  ];
+
+  var ungraded = [];
+  rows.forEach(function (r) {
+    var grade = gradeFor(r.marks);
+    if (!grade) { ungraded.push(r.id); return; }
+    lines.push(csvRow([r.id, r.marks, grade]));
+  });
+
+  if (ungraded.length) throw new Error(pluralise(ungraded.length, "student") + " could not be graded.");
+  return { text: "\uFEFF" + lines.join("\r\n") + "\r\n", label: label, excluded: excluded };
+}
+
+/* Distinct sheet rows withheld anywhere in the file, matching the Data quality
+   panel. Counted by row, not by problem, so a row that failed two checks is
+   still one withheld row. */
+function totalExcludedRows() {
+  var seen = Object.create(null);
+  state.problems.forEach(function (p) { seen[p.row] = true; });
+  return Object.keys(seen).length;
+}
+
+/* The same count restricted to the course being exported. Rows whose Course
+   cell was blank cannot be attributed to a course and stay in the file total. */
+function courseExcluded() {
+  var seen = Object.create(null);
+  state.problems.forEach(function (p) {
+    if (p.courseKey === state.courseKey) seen[p.row] = true;
+  });
+  return Object.keys(seen).length;
+}
+
+/* Locale-independent stamp: an export that is diffed or archived has to read the
+   same on every machine. */
+function isoStamp(d) {
+  var t = d || new Date(), p = function (n) { return String(n).padStart(2, "0"); };
+  return t.getFullYear() + "-" + p(t.getMonth() + 1) + "-" + p(t.getDate()) +
+    " " + p(t.getHours()) + ":" + p(t.getMinutes());
+}
+
+function downloadCsv(filename, text) {
+  var url = URL.createObjectURL(new Blob([text], { type:"text/csv;charset=utf-8" }));
+  var link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 0);
+}
+
+/* ---------- 11  EVENTS + INIT ---------- */
+/* Everything that depends on the data or the bands, in one pass. The Data
+   quality panel is skipped when the dataset has not changed, so dragging a
+   grade boundary never rebuilds a 200 row table or loses the reader's scroll
+   position and open state. */
+var qualitySignature = null;
+function updateAll() {
+  readRanges();
+  var rangeErrors = validateRanges();
+  var rows = courseRows();
+  var dist = buildDistribution(rows);
+
+  renderGradeCards(dist, rangeErrors);
+  renderAnalytics(rows, dist);
+  var sig = state.loaded
+    ? [state.fileName, state.rowsRead, state.rows.length, state.problems.length, state.notes.length].join("|")
+    : "empty";
+  if (sig !== qualitySignature) { qualitySignature = sig; renderDataQuality(); }
+  renderSearch();
+  renderFinalizeState();
+  renderSteps();
+  drawHistogram(rows);
+}
+
+/* Progress rail. Each step reports the truth about the session, so the reader
+   never has to guess what is left before the export becomes available. A step
+   is "done" only when its own work is finished, "blocked" when it is the next
+   step and something is stopping it, and "todo" when it has not started. */
+function renderSteps() {
+  if (!el.steps) return;
+  var rows = courseRows();
+  var rangeErrors = state.ranges ? validateRanges() : [];
+  var ungraded = rows.filter(function (r) { return !gradeFor(r.marks); }).length;
+
+  var stages = [
+    { key: "import",   done: state.loaded,                                   blocked: !state.loaded },
+    { key: "validate", done: state.loaded && state.rows.length > 0,         blocked: state.loaded && !state.rows.length },
+    { key: "grade",    done: state.loaded && !!state.courseKey && rows.length > 0 &&
+                         !!state.instructor && !rangeErrors.length && !ungraded,
+                         blocked: state.loaded && !!state.courseKey && !!(rangeErrors.length || ungraded || !state.instructor || !rows.length) },
+    { key: "export",   done: state.finalizeCount > 0,                       blocked: false }
+  ];
+
+  var firstOpen = stages.findIndex(function (s) { return !s.done; });
+  var current = firstOpen === -1 ? stages.length - 1 : firstOpen;
+  var titles = {
+    import: "Upload a marks workbook",
+    validate: "Read the file and check every row",
+    grade: "Pick a course, enter your name and confirm the grade bands",
+    export: "Review the sheet and download the CSV"
+  };
+
+  stages.forEach(function (s, i) {
+    var li = el.steps.querySelector('[data-step="' + s.key + '"]');
+    if (!li) return;
+    var next = s.done ? "done" : (i === current ? (s.blocked ? "blocked" : "current") : "todo");
+    if (li.getAttribute("data-state") === next) return;
+    li.setAttribute("data-state", next);
+    li.title = titles[s.key];
+  });
+}
+
+/* ---------- 11b  ISSUES EXPORT ---------- */
+/* The instructor's next action is to fix the source file, so the withheld rows
+   go back out as a CSV that can be pasted back into the workbook. */
+function buildIssuesCsv() {
+  var lines = [csvRow(["Sheet row", "BITS ID", "Course", "Field", "Value", "Issue", "Severity"])];
+  var detail = state.problems.concat(state.notes.map(function (n) {
+    return { row:n.row, id:n.id, course:n.course, field:"Total Marks", value:"",
+             reason:n.reason, severity:"warn" };
+  })).sort(function (a, b) { return a.row - b.row; });
+  detail.forEach(function (p) {
+    lines.push(csvRow([p.row, p.id, p.course, p.field, p.value, p.reason,
+      p.severity === "error" ? "excluded" : "adjusted"]));
+  });
+  return {
+    text: "\uFEFF" + lines.join("\r\n") + "\r\n",
+    name: "issues-" + slugify(state.fileName.replace(/\.[^.]+$/, "") || "marks") + "-" + fileStamp() + ".csv"
+  };
+}
+
+function applyFile(file) {
+  clearFileError();
+  if (!file) return;
+
+  if (typeof XLSX === "undefined") {
+    showFileError("Excel library unavailable",
+      "The SheetJS library could not be loaded, so Excel files cannot be read. Check your network connection and reload.");
+    return;
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    showFileError("File too large", "Marks files must be 25 MB or smaller. Split the file by course and upload again.");
+    return;
+  }
+
+  /* Drop the previous dataset before reading, so a failed parse can never
+     leave stale students, courses or analytics on screen. The session timer
+     also restarts: a new file is a new grading task. */
+  resetDataset();
+  resetTimer();
+  qualitySignature = null;
+  el.search.value = "";
+  el.thankyou.textContent = "";
+  histSignature = "";
+  renderCourseOptions();
+  renderWelcome();
+  updateAll();
+  el.welcome.textContent = "Reading " + file.name + "...";
+  el.welcome.classList.add("loading");
+
+  var reader = new FileReader();
+  reader.onerror = function () {
+    showFileError("Could not read the file",
+      "The browser failed to read \"" + file.name + "\". Try again, or re-save the workbook as .xlsx.");
+    renderWelcome();
+  };
+  reader.onload = function (event) {
+    var result;
+    try {
+      result = parseWorkbook(event.target.result);
+    } catch (err) {
+      var kind = err && err.kind === "format" ? "warn" : "error";
+      if (kind === "warn") showFileWarn("Wrong file type", err && err.message ? err.message : String(err));
+      else showFileError("Could not read the marks file", err && err.message ? err.message : String(err));
+      renderWelcome();
+      return;
+    }
+
+    state.loaded = true;
+    state.fileName = file.name;
+    state.sheetName = result.sheetName;
+    state.sheetCount = result.sheetCount;
+    state.columns = result.columns;
+    headerCells = result.headerCells;
+    state.headerRow = result.headerRow;
+    state.rowsRead = result.rowsRead;
+    state.rows = result.rows;
+    state.problems = result.problems;
+    state.notes = result.notes;
+    state.courses = result.courses;
+    state.courseKey = "";
+    rowCache = { key:null, list:[] };
+
+    renderCourseOptions();
+    renderWelcome();
+    updateAll();
+
+    if (!result.courses.length) {
+      showFileWarn("No courses found",
+        "The file was read, but no row carried a Course value, so there is nothing to grade. Open Data quality to see which rows failed.");
+    } else if (!result.rows.length) {
+      showFileWarn("No student could be graded",
+        "All " + result.rowsRead + " data row(s) failed validation. Open Data quality for the row-by-row reason, fix the source file and upload it again.");
+    } else if (result.problems.length) {
+      var kept = result.rows.length, dropped = result.rowsRead - kept;
+      showFileWarn(dropped + " of " + result.rowsRead + " rows need attention",
+        "The file loaded and " + pluralise(kept, "student") + " " + (kept === 1 ? "is" : "are") +
+        " ready to grade. " + dropped + (dropped === 1 ? " row was" : " rows were") +
+        " withheld: open Data quality to see the reason for each.");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function setInstructor(value) {
+  state.instructor = value;
+  var missing = !value && !!state.courseKey;
+  el.instructor.setAttribute("aria-invalid", missing ? "true" : "false");
+  el.instructorError.textContent = missing
+    ? "Enter your name before finalizing and exporting grades."
+    : "";
+  renderWelcome();
+  renderFinalizeState();
+  renderSteps();
+}
+
+function onCourseChange() {
+  state.courseKey = el.course.value;
+  rowCache = { key:null, list:[] };
+  el.search.value = "";
+  el.searchResults.textContent = "";
+  el.thankyou.textContent = "";   /* previous result belongs to another course */
+  histSignature = "";
+  setInstructor(el.instructor.value.trim());
+  if (courseRows().length && !timerInterval) startTimer();
+  updateAll();
+
+  // GSAP Animations
+  if(typeof gsap !== 'undefined') {
+      gsap.registerPlugin(ScrollTrigger);
+      gsap.from(".gsap-fade-up", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
+      gsap.utils.toArray(".gsap-stagger").forEach(function(el) {
+        gsap.from(el, {
+          scrollTrigger: { trigger: el, start: "top 85%" },
+          y: 30, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.1
+        });
+      });
+  }
+}
+
+
+function openReview() {
+  if (collectBlockers().length) { updateAll(); el.download.focus(); return; }
+  renderReview();
+  if (typeof el.review.showModal === "function") el.review.showModal();
+  else el.review.setAttribute("open", "");
+}
+function closeReview() {
+  if (typeof el.review.close === "function" && el.review.open) el.review.close();
+  else el.review.removeAttribute("open");
+}
+
+function finalize() {
+  var rows = courseRows();
+  var blockers = collectBlockers();
+  if (blockers.length) { renderReview(); return; }
+
+  var csv, label;
+  try {
+    var built = buildCsv(rows);
+    csv = built.text;
+    label = built.label;
+  } catch (err) {
+    showFileError("Export blocked", err && err.message ? err.message : String(err));
+    closeReview();
+    return;
+  }
+
+  state.finalizeCount++;
+  stopTimer();
+
+  var elapsed = elapsedMs();
+  var mins = Math.floor(elapsed / 60000);
+  var secs = Math.floor((elapsed % 60000) / 1000);
+
+  downloadCsv("grades-" + slugify(label) + "-" + fileStamp() + ".csv", csv);
+  closeReview();
+
+  if (state.finalizeCount === 1) {
+    el.thankyou.textContent = "You completed grading in " + mins + " min " + secs + " sec in your first attempt.";
+  } else {
+    el.thankyou.textContent = "You took a total of " + mins + " min " + secs +
+      " sec to complete the grading in your " + ordinalAttempt(state.finalizeCount) + " attempt.";
+  }
+  updateAll();
+
+  // GSAP Animations
+  if(typeof gsap !== 'undefined') {
+      gsap.registerPlugin(ScrollTrigger);
+      gsap.from(".gsap-fade-up", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
+      gsap.utils.toArray(".gsap-stagger").forEach(function(el) {
+        gsap.from(el, {
+          scrollTrigger: { trigger: el, start: "top 85%" },
+          y: 30, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.1
+        });
+      });
+  }
+}
+
+
+function bindEvents() {
+  el.setupForm.addEventListener("submit", function (e) { e.preventDefault(); });
+
+  el.file.addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    el.file.value = "";           /* allows re-picking the same file */
+    applyFile(file);
+  });
+
+  el.instructor.addEventListener("input", function () {
+    setInstructor(el.instructor.value.trim());
+  });
+
+  el.course.addEventListener("change", onCourseChange);
+
+  el.resetRanges.addEventListener("click", function () {
+    if (!confirm("This will reset all grade ranges to the default values.\nDo you want to continue?")) return;
+    writeRanges(DEFAULTS);
+    updateAll();
+  });
+
+  el.download.addEventListener("click", openReview);
+  el.downloadIssues.addEventListener("click", function () {
+    var out = buildIssuesCsv();
+    downloadCsv(out.name, out.text);
+    el.qualityIssuesNote.textContent = "Downloaded " + out.name + ". Nothing in the file was changed.";
+  });
+  el.reviewCancel.addEventListener("click", closeReview);
+  el.reviewClose.addEventListener("click", closeReview);
+  el.reviewConfirm.addEventListener("click", finalize);
+  el.review.addEventListener("cancel", function (e) { e.preventDefault(); closeReview(); });
+  el.review.addEventListener("click", function (e) { if (e.target === el.review) closeReview(); });
+
+  el.search.addEventListener("input", renderSearch);
+  el.searchForm.addEventListener("submit", function (e) { e.preventDefault(); renderSearch(); });
+  el.searchClear.addEventListener("click", function () { el.search.value = ""; renderSearch(); el.search.focus(); });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { drawHistogram(courseRows()); }, 150);
+  });
+}
+
+function init() {
+  if (!el.setupForm) return;   /* markup mismatch: fail soft, never throw */
+  buildGradeUI();
+  renderCourseOptions();
+  renderWelcome();
+  setInstructor("");
+  bindEvents();
+  updateAll();
+
+  // GSAP Animations
+  if(typeof gsap !== 'undefined') {
+      gsap.registerPlugin(ScrollTrigger);
+      gsap.from(".gsap-fade-up", { y: 50, opacity: 0, duration: 1, ease: "power3.out" });
+      gsap.utils.toArray(".gsap-stagger").forEach(function(el) {
+        gsap.from(el, {
+          scrollTrigger: { trigger: el, start: "top 85%" },
+          y: 30, opacity: 0, duration: 0.8, ease: "power2.out", stagger: 0.1
+        });
+      });
+  }
+}
+
+
+/* ---------- 12  TIMER ---------- */
+/* Starts when a course with valid rows is first selected (grading actually
+   begins), keeps counting across a course switch, and stops only on a
+   confirmed export. The clock still paints 00:00 immediately, never a second
+   later.
+
+   Time is accumulated in two parts: `bankedMs` holds the segments that already
+   stopped (an export) and `gradingStartTime` the segment in progress. Without
+   the bank, switching course restarted the clock at 00:00, so the closing
+   message reported 0 min on a second attempt even after minutes of grading. */
+var gradingStartTime = null;
+var bankedMs = 0;
+var timerInterval = null;
+var circumference = 2 * Math.PI * 40;
+
+function elapsedMs() {
+  var live = gradingStartTime === null ? 0 : Math.max(0, Date.now() - gradingStartTime);
+  return bankedMs + live;
+}
+
+function paintTimer() {
+  var elapsed = elapsedMs();
+  var mins = Math.floor(elapsed / 60000);
+  var secs = Math.floor((elapsed % 60000) / 1000);
+  var text = String(mins).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
+  el.timerText.textContent = text;
+  if (el.timerClock) {
+    el.timerClock.setAttribute("aria-label",
+      "Time spent on this grading session: " + mins + " min " + secs + " sec");
+  }
+  el.timerArc.style.strokeDasharray = circumference.toFixed(2);
+  el.timerArc.style.strokeDashoffset = (circumference * (1 - Math.min(elapsed / 3600000, 1))).toFixed(2);
+  return text;
+}
+
+function startTimer() {
+  if (timerInterval) return;
+  gradingStartTime = Date.now();        /* resumes from the banked total */
+  paintTimer();                         /* paints immediately, not 1 s later */
+  timerInterval = setInterval(paintTimer, 1000);
+}
+function stopTimer() {
+  if (gradingStartTime !== null) {
+    bankedMs += Math.max(0, Date.now() - gradingStartTime);
+    gradingStartTime = null;
+  }
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  paintTimer();
+}
+function resetTimer() {
+  stopTimer();
+  bankedMs = 0;
+  gradingStartTime = null;
+  paintTimer();
+}
+
+/* ---------- DEPENDENCY LOADER ---------- */
+var FILE_HINT = "Excel workbook with one row per student.";
+
+function markXLSXReady() {
+  if (el.file) el.file.disabled = false;
+  if (el.fileHint) el.fileHint.textContent = FILE_HINT;
+}
+
+function loadXLSX(index) {
+  if (typeof XLSX !== "undefined") { markXLSXReady(); return; }
+  if (index >= SHEETJS_CDNS.length) {
+    if (el.file) el.file.disabled = true;
+    if (el.fileHint) el.fileHint.textContent = "Excel reader unavailable.";
+    showFileError("Excel library unavailable",
+      "Both SheetJS CDNs could not be reached, so Excel files cannot be read. Connect to the internet and reload.");
+    return;
+  }
+  var script = document.createElement("script");
+  script.src = SHEETJS_CDNS[index];
+  script.async = true;
+  script.onload = function () {
+    if (typeof XLSX === "undefined") loadXLSX(index + 1);
+    else markXLSXReady();
+  };
+  script.onerror = function () { loadXLSX(index + 1); };
+  document.head.appendChild(script);
+}
+
+/* The file input stays disabled until a parser is available, so a user can
+   never pick a file the console is unable to read. */
+if (el.file) el.file.disabled = true;
+if (el.fileHint) el.fileHint.textContent = "Loading the Excel reader\u2026";
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
+loadXLSX(0);
+
+})();
+</script>
+</body>
+</html>

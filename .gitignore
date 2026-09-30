@@ -1,0 +1,20 @@
+# Source docs and temporary scripts
+BITS Digital CodeForge V1.0.docx
+BITS Digital CodeForge V1.0.md
+rewrite.py
+surgical_fix.py
+dummy_edge_cases.xlsx
+dummy_valid_marks.xlsx
+
+# Customizations
+.agents/
+.gemini/
+skills-lock.json
+
+# Dependencies
+node_modules/
+tests/node_modules/
+
+# OS generated files
+.DS_Store
+Thumbs.db
